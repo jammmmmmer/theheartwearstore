@@ -1,0 +1,14 @@
+[build]
+  command = "next build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[headers]]
+  for = "/api/webhooks/*"
+  [headers.values]
+    Cache-Control = "no-store"

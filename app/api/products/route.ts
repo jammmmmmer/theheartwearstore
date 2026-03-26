@@ -1,0 +1,22 @@
+import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
+
+export async function GET() {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_enabled', true)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching products:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ products: data ?? [] })
+  } catch (err) {
+    console.error('Unexpected error fetching products:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
