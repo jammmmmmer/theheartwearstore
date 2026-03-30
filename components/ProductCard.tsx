@@ -22,7 +22,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       className="group block"
       aria-label={`View ${product.title}`}
     >
-      <div className="overflow-hidden bg-stone-100 aspect-square relative">
+      <div className="overflow-hidden bg-stone-900 border border-stone-800 hover:border-stone-600 transition-colors aspect-square relative">
         <Image
           src={imageUrl}
           alt={product.title}
@@ -31,10 +31,10 @@ export default function ProductCard({ product }: ProductCardProps) {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-stone-900 opacity-0 group-hover:opacity-5 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-stone-950 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
       </div>
       <div className="mt-4 space-y-1">
-        <h3 className="font-playfair text-stone-900 text-base sm:text-lg leading-snug group-hover:text-stone-700 transition-colors">
+        <h3 className="font-playfair text-stone-100 group-hover:text-stone-50 text-base sm:text-lg leading-snug transition-colors">
           {product.title}
         </h3>
         <p className="text-stone-500 text-sm">

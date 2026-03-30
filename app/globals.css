@@ -4,7 +4,8 @@
 
 @layer base {
   body {
-    @apply bg-stone-50 text-stone-900 antialiased;
+    @apply bg-stone-950 text-stone-50 antialiased;
+    scrollbar-color: #44403c #0c0a09;
   }
   h1, h2, h3 {
     @apply font-playfair;
@@ -13,9 +14,9 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-stone-900 text-white px-6 py-3 text-sm tracking-widest uppercase hover:bg-stone-700 transition-colors duration-200;
+    @apply bg-sage-600 text-white px-6 py-3 text-sm tracking-widest uppercase hover:bg-sage-500 transition-colors duration-200;
   }
   .btn-outline {
-    @apply border border-stone-900 text-stone-900 px-6 py-3 text-sm tracking-widest uppercase hover:bg-stone-900 hover:text-white transition-colors duration-200;
+    @apply border border-stone-600 text-stone-300 px-6 py-3 text-sm tracking-widest uppercase hover:border-stone-300 hover:text-stone-50 transition-colors duration-200;
   }
 }

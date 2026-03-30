@@ -15,14 +15,14 @@ export default function SuccessPage() {
   }, [clearCart])
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
+    <div className="bg-stone-950 min-h-[70vh] flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center space-y-6">
         <div className="flex justify-center">
           <div className="relative">
             <CheckCircle
               size={64}
               strokeWidth={1}
-              className="text-sage-500"
+              className="text-sage-400"
             />
             <Leaf
               size={20}
@@ -33,15 +33,15 @@ export default function SuccessPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="font-playfair text-4xl text-stone-900">{tr.success_heading}</h1>
-          <p className="text-stone-500 text-sm leading-relaxed">
+          <h1 className="font-playfair text-4xl text-stone-50">{tr.success_heading}</h1>
+          <p className="text-stone-400 text-sm leading-relaxed">
             {tr.success_body}
           </p>
         </div>
 
-        <div className="bg-stone-100 px-6 py-5 text-left space-y-2">
+        <div className="bg-stone-900 border border-stone-800 px-6 py-5 text-left space-y-2">
           <p className="text-xs uppercase tracking-widest text-stone-500">{tr.success_next_eyebrow}</p>
-          <ul className="text-sm text-stone-600 space-y-1.5">
+          <ul className="text-sm text-stone-400 space-y-1.5">
             <li>✦ &nbsp;{tr.success_next_1}</li>
             <li>✦ &nbsp;{tr.success_next_2}</li>
             <li>✦ &nbsp;{tr.success_next_3}</li>
@@ -58,7 +58,7 @@ export default function SuccessPage() {
           </Link>
         </div>
 
-        <p className="text-xs text-stone-400 italic">
+        <p className="text-xs text-stone-600 italic">
           {tr.success_quote}
         </p>
       </div>

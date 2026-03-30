@@ -54,17 +54,17 @@ export default function HomePageClient({ products }: HomePageClientProps) {
 
   const promises = [
     {
-      icon: <Sparkles size={22} strokeWidth={1.5} className="text-sage-500" />,
+      icon: <Sparkles size={22} strokeWidth={1.5} className="text-sage-400" />,
       title: tr.promise_1_title,
       body: tr.promise_1_body,
     },
     {
-      icon: <Leaf size={22} strokeWidth={1.5} className="text-sage-500" />,
+      icon: <Leaf size={22} strokeWidth={1.5} className="text-sage-400" />,
       title: tr.promise_2_title,
       body: tr.promise_2_body,
     },
     {
-      icon: <RefreshCw size={22} strokeWidth={1.5} className="text-sage-500" />,
+      icon: <RefreshCw size={22} strokeWidth={1.5} className="text-sage-400" />,
       title: tr.promise_3_title,
       body: tr.promise_3_body,
     },
@@ -76,10 +76,10 @@ export default function HomePageClient({ products }: HomePageClientProps) {
       <HeroSection />
 
       {/* ── MARQUEE STRIP ────────────────────────────────────── */}
-      <div className="bg-stone-900 py-3 overflow-hidden select-none" aria-hidden="true">
+      <div className="bg-stone-900 border-y border-stone-800 py-3 overflow-hidden select-none" aria-hidden="true">
         <div className="flex animate-marquee whitespace-nowrap">
           {MARQUEE_ITEMS.map((item, i) => (
-            <span key={i} className="text-stone-500 text-[10px] tracking-[0.3em] uppercase mx-6">
+            <span key={i} className="text-stone-700 text-[10px] tracking-[0.3em] uppercase mx-6">
               {item}
               <span className="ml-6 text-stone-700">·</span>
             </span>
@@ -88,19 +88,19 @@ export default function HomePageClient({ products }: HomePageClientProps) {
       </div>
 
       {/* ── FEATURED COLLECTION ──────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <section className="bg-stone-950 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-sage-600 mb-3">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-sage-500 mb-3">
               {tr.featured_eyebrow}
             </p>
-            <h2 className="font-playfair text-4xl sm:text-5xl text-stone-900">
+            <h2 className="font-playfair text-4xl sm:text-5xl text-stone-50">
               {tr.featured_heading}
             </h2>
           </div>
           <Link
             href="/shop"
-            className="group inline-flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 transition-colors"
+            className="group inline-flex items-center gap-2 text-sm text-stone-400 hover:text-stone-50 transition-colors"
           >
             {tr.featured_view_all}
             <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
@@ -108,9 +108,9 @@ export default function HomePageClient({ products }: HomePageClientProps) {
         </div>
 
         {products.length === 0 ? (
-          <div className="text-center py-24 border border-stone-200 rounded-sm">
-            <p className="font-playfair text-xl italic text-stone-400">{tr.featured_coming_soon}</p>
-            <p className="text-sm text-stone-400 mt-2">{tr.featured_coming_soon_sub}</p>
+          <div className="text-center py-24 border border-stone-800 rounded-sm">
+            <p className="font-playfair text-xl italic text-stone-500">{tr.featured_coming_soon}</p>
+            <p className="text-sm text-stone-500 mt-2">{tr.featured_coming_soon_sub}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
@@ -123,7 +123,7 @@ export default function HomePageClient({ products }: HomePageClientProps) {
         <div className="text-center mt-12">
           <Link
             href="/shop"
-            className="inline-flex items-center gap-2 border border-stone-900 text-stone-900 px-10 py-4 text-xs tracking-[0.2em] uppercase hover:bg-stone-900 hover:text-white transition-all duration-300"
+            className="inline-flex items-center gap-2 border border-stone-700 text-stone-300 px-10 py-4 text-xs tracking-[0.2em] uppercase hover:bg-stone-900 hover:text-stone-50 transition-all duration-300"
           >
             Shop All Styles
             <ArrowRight size={13} />
@@ -132,27 +132,27 @@ export default function HomePageClient({ products }: HomePageClientProps) {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────────── */}
-      <section className="bg-stone-50 border-t border-b border-stone-100 py-24">
+      <section className="bg-stone-900 border-t border-b border-stone-800 py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-sage-600 mb-3">The process</p>
-            <h2 className="font-playfair text-4xl sm:text-5xl text-stone-900">How It Works</h2>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-sage-500 mb-3">The process</p>
+            <h2 className="font-playfair text-4xl sm:text-5xl text-stone-50">How It Works</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 md:gap-px bg-stone-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 md:gap-px bg-stone-800">
             {steps.map((step, i) => (
-              <div key={i} className="bg-stone-50 p-10 flex flex-col gap-5">
+              <div key={i} className="bg-stone-900 p-10 flex flex-col gap-5">
                 <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-full border border-sage-300 flex items-center justify-center text-sage-500">
+                  <div className="w-10 h-10 rounded-full bg-stone-800 flex items-center justify-center text-sage-400">
                     {step.icon}
                   </div>
-                  <span className="font-playfair text-5xl text-stone-200 leading-none select-none">
+                  <span className="font-playfair text-5xl text-stone-800 leading-none select-none">
                     {step.number}
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-playfair text-xl text-stone-900 mb-2">{step.title}</h3>
-                  <p className="text-stone-500 text-sm leading-relaxed">{step.body}</p>
+                  <h3 className="font-playfair text-xl text-stone-50 mb-2">{step.title}</h3>
+                  <p className="text-stone-400 text-sm leading-relaxed">{step.body}</p>
                 </div>
               </div>
             ))}
@@ -161,13 +161,13 @@ export default function HomePageClient({ products }: HomePageClientProps) {
       </section>
 
       {/* ── OUR PROMISE ──────────────────────────────────────── */}
-      <section className="py-24">
+      <section className="bg-stone-950 py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-sage-600 mb-3">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-sage-500 mb-3">
               {tr.promise_eyebrow}
             </p>
-            <h2 className="font-playfair text-4xl sm:text-5xl text-stone-900">
+            <h2 className="font-playfair text-4xl sm:text-5xl text-stone-50">
               {tr.promise_heading}
             </h2>
           </div>
@@ -175,12 +175,12 @@ export default function HomePageClient({ products }: HomePageClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
             {promises.map((p, i) => (
               <div key={i} className="flex flex-col items-center text-center gap-5 px-4">
-                <div className="w-14 h-14 bg-sage-50 border border-sage-100 rounded-full flex items-center justify-center">
+                <div className="w-14 h-14 bg-stone-900 border border-stone-800 rounded-full flex items-center justify-center">
                   {p.icon}
                 </div>
                 <div>
-                  <h3 className="font-playfair text-xl text-stone-900 mb-2">{p.title}</h3>
-                  <p className="text-stone-500 text-sm leading-relaxed">{p.body}</p>
+                  <h3 className="font-playfair text-xl text-stone-50 mb-2">{p.title}</h3>
+                  <p className="text-stone-400 text-sm leading-relaxed">{p.body}</p>
                 </div>
               </div>
             ))}
@@ -189,7 +189,7 @@ export default function HomePageClient({ products }: HomePageClientProps) {
       </section>
 
       {/* ── BRAND STATEMENT BAND ─────────────────────────────── */}
-      <section className="relative overflow-hidden bg-[#f7f4ef] py-20 border-t border-stone-200">
+      <section className="relative overflow-hidden bg-stone-900 py-20 border-t border-b border-stone-800">
         {/* Decorative leaf */}
         <svg
           aria-hidden="true"
@@ -200,13 +200,13 @@ export default function HomePageClient({ products }: HomePageClientProps) {
           <path d="M100 10C100 10 160 40 170 100C180 160 140 190 100 190C60 190 20 160 30 100C40 40 100 10 100 10Z" />
         </svg>
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-sage-600 mb-6">Our ethos</p>
-          <blockquote className="font-playfair text-2xl sm:text-4xl text-stone-800 italic leading-snug mb-8">
-            "Clothing is memory. Every thread we wear carries a story — make yours worth telling."
+          <p className="text-[10px] uppercase tracking-[0.3em] text-sage-500 mb-6">Our ethos</p>
+          <blockquote className="font-playfair text-2xl sm:text-4xl text-stone-100 italic leading-snug mb-8">
+            &ldquo;Clothing is memory. Every thread we wear carries a story — make yours worth telling.&rdquo;
           </blockquote>
           <Link
             href="/about"
-            className="group inline-flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 transition-colors tracking-wide"
+            className="group inline-flex items-center gap-2 text-sm text-stone-400 hover:text-stone-50 transition-colors tracking-wide"
           >
             Read our story
             <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" />
@@ -215,7 +215,7 @@ export default function HomePageClient({ products }: HomePageClientProps) {
       </section>
 
       {/* ── CTA BANNER ───────────────────────────────────────── */}
-      <section className="bg-stone-900 py-20 relative overflow-hidden">
+      <section className="bg-stone-900 border-t border-stone-800 py-20 relative overflow-hidden">
         {/* Subtle texture */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -225,7 +225,7 @@ export default function HomePageClient({ products }: HomePageClientProps) {
           }}
         />
         <div className="relative z-10 max-w-2xl mx-auto px-4 text-center">
-          <h2 className="font-playfair text-4xl sm:text-5xl text-white mb-4 italic leading-tight">
+          <h2 className="font-playfair text-4xl sm:text-5xl text-stone-50 mb-4 italic leading-tight">
             {tr.cta_heading}
           </h2>
           <p className="text-stone-400 text-sm leading-relaxed mb-10 max-w-lg mx-auto">
@@ -233,7 +233,7 @@ export default function HomePageClient({ products }: HomePageClientProps) {
           </p>
           <Link
             href="/shop"
-            className="group inline-flex items-center gap-3 bg-white text-stone-900 px-10 py-4 text-xs tracking-[0.2em] uppercase hover:bg-stone-100 transition-all duration-300 font-medium"
+            className="group inline-flex items-center gap-3 bg-sage-600 text-white px-10 py-4 text-xs tracking-[0.2em] uppercase hover:bg-sage-500 transition-all duration-300 font-medium"
           >
             {tr.cta_button}
             <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" />

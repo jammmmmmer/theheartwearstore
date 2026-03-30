@@ -14,7 +14,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-40 bg-stone-50 border-b border-stone-200">
+    <header className="sticky top-0 z-40 bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -25,10 +25,10 @@ export default function Header() {
           >
             <Leaf
               size={18}
-              className="text-sage-500 group-hover:text-sage-600 transition-colors"
+              className="text-sage-500 group-hover:text-sage-400 transition-colors"
               strokeWidth={1.5}
             />
-            <span className="font-playfair text-lg text-stone-900 tracking-wide">
+            <span className="font-playfair text-lg text-stone-50 tracking-wide">
               The Heartwear Store
             </span>
           </Link>
@@ -37,19 +37,19 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-8">
             <Link
               href="/"
-              className="text-sm text-stone-600 hover:text-stone-900 tracking-wide transition-colors"
+              className="text-sm text-stone-400 hover:text-stone-50 tracking-wide transition-colors"
             >
               {tr.nav_home}
             </Link>
             <Link
               href="/shop"
-              className="text-sm text-stone-600 hover:text-stone-900 tracking-wide transition-colors"
+              className="text-sm text-stone-400 hover:text-stone-50 tracking-wide transition-colors"
             >
               {tr.nav_shop}
             </Link>
             <Link
               href="/about"
-              className="text-sm text-stone-600 hover:text-stone-900 tracking-wide transition-colors"
+              className="text-sm text-stone-400 hover:text-stone-50 tracking-wide transition-colors"
             >
               {tr.nav_about}
             </Link>
@@ -65,12 +65,12 @@ export default function Header() {
             {/* Cart button */}
             <button
               onClick={openCart}
-              className="relative p-2 text-stone-700 hover:text-stone-900 transition-colors"
+              className="relative p-2 text-stone-50 hover:text-stone-200 transition-colors"
               aria-label={`${tr.nav_open_cart} — ${itemCount} ${itemCount !== 1 ? tr.nav_items : tr.nav_item}`}
             >
               <ShoppingBag size={22} strokeWidth={1.5} />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-stone-900 text-white text-[10px] font-medium rounded-full flex items-center justify-center leading-none">
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-sage-600 text-white text-[10px] font-medium rounded-full flex items-center justify-center leading-none">
                   {itemCount > 99 ? '99+' : itemCount}
                 </span>
               )}
@@ -79,7 +79,7 @@ export default function Header() {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen((o) => !o)}
-              className="md:hidden p-2 text-stone-700 hover:text-stone-900 transition-colors"
+              className="md:hidden p-2 text-stone-400 hover:text-stone-50 transition-colors"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -90,29 +90,29 @@ export default function Header() {
 
       {/* Mobile Nav */}
       {mobileMenuOpen && (
-        <nav className="md:hidden bg-stone-50 border-t border-stone-200 px-4 py-4 flex flex-col gap-4 animate-fade-in">
+        <nav className="md:hidden bg-stone-950 border-t border-stone-800 px-4 py-4 flex flex-col gap-4 animate-fade-in">
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm text-stone-700 hover:text-stone-900 tracking-wide py-1"
+            className="text-sm text-stone-400 hover:text-stone-50 tracking-wide py-1"
           >
             {tr.nav_home}
           </Link>
           <Link
             href="/shop"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm text-stone-700 hover:text-stone-900 tracking-wide py-1"
+            className="text-sm text-stone-400 hover:text-stone-50 tracking-wide py-1"
           >
             {tr.nav_shop}
           </Link>
           <Link
             href="/about"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm text-stone-700 hover:text-stone-900 tracking-wide py-1"
+            className="text-sm text-stone-400 hover:text-stone-50 tracking-wide py-1"
           >
             {tr.nav_about}
           </Link>
-          <div className="pt-1 border-t border-stone-200">
+          <div className="pt-1 border-t border-stone-800">
             <LanguageToggle />
           </div>
         </nav>

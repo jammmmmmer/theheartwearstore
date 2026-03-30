@@ -12,11 +12,11 @@ export default function ShopPageClient({ products }: ShopPageClientProps) {
   const { tr } = useTranslation()
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div className="bg-stone-950 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       {/* Page header */}
       <div className="mb-12 text-center">
-        <p className="text-xs uppercase tracking-widest text-sage-600 mb-3">{tr.shop_eyebrow}</p>
-        <h1 className="font-playfair text-5xl text-stone-900 mb-4">{tr.shop_heading}</h1>
+        <p className="text-xs uppercase tracking-widest text-sage-500 mb-3">{tr.shop_eyebrow}</p>
+        <h1 className="font-playfair text-5xl text-stone-50 mb-4">{tr.shop_heading}</h1>
         {products.length > 0 && (
           <p className="text-stone-500 text-sm">
             {products.length} {products.length === 1 ? tr.shop_count_single : tr.shop_count_plural}
@@ -25,11 +25,11 @@ export default function ShopPageClient({ products }: ShopPageClientProps) {
       </div>
 
       {products.length === 0 ? (
-        <div className="text-center py-24">
-          <p className="font-playfair text-2xl italic text-stone-400 mb-3">
+        <div className="text-center py-24 border border-stone-800">
+          <p className="font-playfair text-2xl italic text-stone-500 mb-3">
             {tr.shop_empty}
           </p>
-          <p className="text-stone-400 text-sm max-w-md mx-auto">
+          <p className="text-stone-500 text-sm max-w-md mx-auto">
             {tr.shop_empty_sub}
           </p>
         </div>

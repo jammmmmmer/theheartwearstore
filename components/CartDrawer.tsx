@@ -49,7 +49,7 @@ export default function CartDrawer() {
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-stone-900/40 z-40 animate-fade-in"
+          className="fixed inset-0 bg-stone-950/80 z-40 animate-fade-in"
           onClick={closeCart}
           aria-hidden="true"
         />
@@ -57,7 +57,7 @@ export default function CartDrawer() {
 
       {/* Drawer */}
       <aside
-        className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-stone-50 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-stone-950 border-l border-stone-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         aria-label={tr.cart_title}
@@ -65,14 +65,14 @@ export default function CartDrawer() {
         role="dialog"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-stone-200">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-stone-800">
           <div className="flex items-center gap-2">
-            <ShoppingBag size={18} strokeWidth={1.5} className="text-stone-700" />
-            <h2 className="font-playfair text-xl text-stone-900">{tr.cart_title}</h2>
+            <ShoppingBag size={18} strokeWidth={1.5} className="text-stone-400" />
+            <h2 className="font-playfair text-xl text-stone-50">{tr.cart_title}</h2>
           </div>
           <button
             onClick={closeCart}
-            className="p-1.5 text-stone-500 hover:text-stone-900 transition-colors rounded"
+            className="p-1.5 text-stone-500 hover:text-stone-50 transition-colors rounded"
             aria-label="Close cart"
           >
             <X size={20} />
@@ -83,7 +83,7 @@ export default function CartDrawer() {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-              <ShoppingBag size={40} strokeWidth={1} className="text-stone-300" />
+              <ShoppingBag size={40} strokeWidth={1} className="text-stone-700" />
               <p className="text-stone-500 text-sm">{tr.cart_empty}</p>
               <button
                 onClick={closeCart}
@@ -93,14 +93,14 @@ export default function CartDrawer() {
               </button>
             </div>
           ) : (
-            <ul className="divide-y divide-stone-200">
+            <ul className="divide-y divide-stone-800">
               {items.map((item) => (
                 <li
                   key={`${item.product_id}-${item.variant_id}`}
                   className="py-5 flex gap-4"
                 >
                   {/* Image */}
-                  <div className="w-20 h-20 bg-stone-100 flex-shrink-0 relative overflow-hidden">
+                  <div className="w-20 h-20 bg-stone-900 border border-stone-800 flex-shrink-0 relative overflow-hidden rounded-sm">
                     {item.image ? (
                       <Image
                         src={item.image}
@@ -110,42 +110,42 @@ export default function CartDrawer() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-stone-200 flex items-center justify-center">
-                        <ShoppingBag size={16} className="text-stone-400" strokeWidth={1} />
+                      <div className="w-full h-full bg-stone-800 flex items-center justify-center">
+                        <ShoppingBag size={16} className="text-stone-600" strokeWidth={1} />
                       </div>
                     )}
                   </div>
 
                   {/* Details */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-stone-900 text-sm font-medium leading-snug truncate">
+                    <p className="text-stone-100 text-sm font-medium leading-snug truncate">
                       {item.title}
                     </p>
                     <p className="text-stone-500 text-xs mt-0.5">{item.variant_title}</p>
-                    <p className="text-stone-700 text-sm mt-1">
+                    <p className="text-stone-300 text-sm mt-1">
                       {formatPrice(item.price)}
                     </p>
 
                     {/* Quantity + Remove */}
                     <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center border border-stone-300">
+                      <div className="flex items-center border border-stone-700 bg-stone-800">
                         <button
                           onClick={() =>
                             updateQuantity(item.product_id, item.variant_id, item.quantity - 1)
                           }
-                          className="px-2.5 py-1 text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors text-sm"
+                          className="px-2.5 py-1 text-stone-300 hover:text-stone-50 hover:bg-stone-700 transition-colors text-sm"
                           aria-label="Decrease quantity"
                         >
                           −
                         </button>
-                        <span className="px-3 py-1 text-sm text-stone-900 border-x border-stone-300 min-w-[2rem] text-center">
+                        <span className="px-3 py-1 text-sm text-stone-300 border-x border-stone-700 min-w-[2rem] text-center">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() =>
                             updateQuantity(item.product_id, item.variant_id, item.quantity + 1)
                           }
-                          className="px-2.5 py-1 text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors text-sm"
+                          className="px-2.5 py-1 text-stone-300 hover:text-stone-50 hover:bg-stone-700 transition-colors text-sm"
                           aria-label="Increase quantity"
                         >
                           +
@@ -154,7 +154,7 @@ export default function CartDrawer() {
 
                       <button
                         onClick={() => removeItem(item.product_id, item.variant_id)}
-                        className="p-1 text-stone-400 hover:text-red-500 transition-colors"
+                        className="p-1 text-stone-600 hover:text-red-400 transition-colors"
                         aria-label={`Remove ${item.title} from cart`}
                       >
                         <Trash2 size={14} />
@@ -163,7 +163,7 @@ export default function CartDrawer() {
                   </div>
 
                   {/* Line total */}
-                  <p className="text-stone-900 text-sm font-medium flex-shrink-0">
+                  <p className="text-stone-300 text-sm font-medium flex-shrink-0">
                     {formatPrice(item.price * item.quantity)}
                   </p>
                 </li>
@@ -174,25 +174,25 @@ export default function CartDrawer() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-stone-200 px-6 py-5 space-y-4">
+          <div className="border-t border-stone-800 px-6 py-5 space-y-4">
             {error && (
-              <p className="text-red-600 text-xs bg-red-50 border border-red-200 px-3 py-2 rounded">
+              <p className="text-red-400 text-xs bg-red-950/40 border border-red-900 px-3 py-2 rounded">
                 {error}
               </p>
             )}
 
             <div className="flex items-center justify-between">
-              <span className="text-stone-600 text-sm">{tr.cart_subtotal}</span>
-              <span className="text-stone-900 font-medium">{formatPrice(subtotal)}</span>
+              <span className="text-stone-400 text-sm">{tr.cart_subtotal}</span>
+              <span className="text-stone-50 font-medium">{formatPrice(subtotal)}</span>
             </div>
-            <p className="text-xs text-stone-400">
+            <p className="text-xs text-stone-600">
               {tr.cart_shipping_note}
             </p>
 
             <button
               onClick={handleCheckout}
               disabled={isLoading}
-              className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-sage-600 text-white hover:bg-sage-500 flex items-center justify-center gap-2 px-6 py-3 text-sm tracking-widest uppercase transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
@@ -207,13 +207,13 @@ export default function CartDrawer() {
             <div className="flex items-center justify-between text-xs">
               <button
                 onClick={closeCart}
-                className="text-stone-500 hover:text-stone-900 transition-colors underline underline-offset-2"
+                className="text-stone-500 hover:text-stone-300 transition-colors underline underline-offset-2"
               >
                 {tr.cart_continue}
               </button>
               <button
                 onClick={clearCart}
-                className="text-stone-400 hover:text-red-500 transition-colors"
+                className="text-stone-600 hover:text-stone-400 transition-colors"
               >
                 {tr.cart_clear}
               </button>

@@ -50,7 +50,7 @@ export default function RootLayout({
       lang="en"
       className={`${playfair.variable} ${inter.variable}`}
     >
-      <body className="font-inter min-h-screen flex flex-col">
+      <body className="font-inter min-h-screen flex flex-col bg-stone-950 text-stone-50">
         <LanguageProvider>
           <Header />
           <main className="flex-1">{children}</main>
