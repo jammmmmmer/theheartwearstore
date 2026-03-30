@@ -6,6 +6,9 @@ import { Product, PrintifyVariant, PrintifyOption } from '@/types'
 import { formatPrice } from '@/lib/utils'
 import { useCartStore } from '@/lib/cart-store'
 import { ShoppingBag, Check } from 'lucide-react'
+import BuyNowButton from '@/components/BuyNowButton'
+import WalletPayButton from '@/components/WalletPayButton'
+import { useTranslation } from '@/lib/language-context'
 
 interface ProductDetailProps {
   product: Product
@@ -16,6 +19,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [addedToCart, setAddedToCart] = useState(false)
   const { addItem, openCart } = useCartStore()
+  const { tr } = useTranslation()
 
   // Find the variant that matches all selected options
   const selectedVariant: PrintifyVariant | undefined = product.variants.find((v) => {
@@ -86,8 +90,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const activeImageSrc = displayImages[activeImageIndex]?.src ?? ''
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
         {/* Images */}
         <div className="flex flex-col gap-4">
           {/* Main image */}
@@ -110,12 +114,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
           {/* Thumbnails */}
           {displayImages.length > 1 && (
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
               {displayImages.slice(0, 6).map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`w-16 h-16 relative overflow-hidden border-2 transition-colors ${
+                  className={`w-16 h-16 flex-shrink-0 relative overflow-hidden border-2 transition-colors ${
                     activeImageIndex === idx
                       ? 'border-stone-900'
                       : 'border-transparent hover:border-stone-300'
@@ -152,13 +156,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           )}
 
           <div>
-            <h1 className="font-playfair text-4xl text-stone-900 leading-snug">
+            <h1 className="font-playfair text-3xl sm:text-4xl text-stone-900 leading-snug">
               {product.title}
             </h1>
             <p className="text-stone-500 text-xl mt-2">
               {selectedVariant
                 ? formatPrice(selectedVariant.price)
-                : `From ${formatPrice(product.price_from)}`}
+                : `${tr.product_from} ${formatPrice(product.price_from)}`}
             </p>
           </div>
 
@@ -190,7 +194,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                       key={value.id}
                       onClick={() => available && handleSelectOption(option.name, value.id)}
                       disabled={!available}
-                      className={`px-4 py-2 text-sm border transition-colors ${
+                      className={`px-4 py-2.5 min-h-[44px] text-sm border transition-colors ${
                         selected
                           ? 'border-stone-900 bg-stone-900 text-white'
                           : available
@@ -212,7 +216,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           <div className="flex flex-col gap-3 pt-2">
             {!allOptionsSelected && product.options.length > 0 && (
               <p className="text-xs text-stone-500">
-                Please select{' '}
+                {tr.product_select_prompt}{' '}
                 {product.options
                   .filter((o: PrintifyOption) => selectedOptions[o.name] === undefined)
                   .map((o: PrintifyOption) => o.name)
@@ -234,23 +238,43 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               {addedToCart ? (
                 <>
                   <Check size={16} />
-                  Added to Cart
+                  {tr.product_added}
                 </>
               ) : (
                 <>
                   <ShoppingBag size={16} strokeWidth={1.5} />
-                  Add to Cart
+                  {tr.product_add_to_cart}
                 </>
               )}
             </button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-stone-200" />
+              <span className="text-xs text-stone-400 uppercase tracking-widest">{tr.cart_or}</span>
+              <div className="flex-1 h-px bg-stone-200" />
+            </div>
+
+            {selectedVariant ? (
+              <div className="flex flex-col gap-2">
+                <WalletPayButton product={product} variant={selectedVariant} />
+                <BuyNowButton product={product} variant={selectedVariant} />
+              </div>
+            ) : (
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-2 py-4 text-sm tracking-widest uppercase bg-stone-100 text-stone-300 border border-stone-200 cursor-not-allowed"
+              >
+                {tr.product_buy_now}
+              </button>
+            )}
           </div>
 
           {/* Trust notes */}
           <ul className="text-xs text-stone-500 space-y-1.5 pt-2 border-t border-stone-200">
-            <li>Printed on demand — unique to your order</li>
-            <li>Ships within 3–7 business days</li>
-            <li>Free exchanges for sizing issues</li>
-            <li>Secure checkout via Stripe</li>
+            <li>{tr.product_trust_1}</li>
+            <li>{tr.product_trust_2}</li>
+            <li>{tr.product_trust_3}</li>
+            <li>{tr.product_trust_4}</li>
           </ul>
         </div>
       </div>

@@ -1,13 +1,17 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { Product } from '@/types'
 import { formatPrice } from '@/lib/utils'
+import { useTranslation } from '@/lib/language-context'
 
 interface ProductCardProps {
   product: Product
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { tr } = useTranslation()
   const defaultImage =
     product.images.find((img) => img.is_default) ?? product.images[0]
   const imageUrl = defaultImage?.src ?? '/placeholder-tshirt.jpg'
@@ -23,17 +27,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           src={imageUrl}
           alt={product.title}
           fill
+          unoptimized
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-stone-900 opacity-0 group-hover:opacity-5 transition-opacity duration-300" />
       </div>
       <div className="mt-4 space-y-1">
-        <h3 className="font-playfair text-stone-900 text-lg leading-snug group-hover:text-stone-700 transition-colors">
+        <h3 className="font-playfair text-stone-900 text-base sm:text-lg leading-snug group-hover:text-stone-700 transition-colors">
           {product.title}
         </h3>
         <p className="text-stone-500 text-sm">
-          From {formatPrice(product.price_from)}
+          {tr.product_from} {formatPrice(product.price_from)}
         </p>
       </div>
     </Link>

@@ -3,6 +3,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images-api.printify.com' },
+      { protocol: 'https', hostname: 'images.printify.com' },
       { protocol: 'https', hostname: '*.printify.com' },
       { protocol: 'https', hostname: 'storage.googleapis.com' },
     ],

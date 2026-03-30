@@ -1,7 +1,11 @@
+'use client'
+
 import Link from 'next/link'
 import { Leaf } from 'lucide-react'
+import { useTranslation } from '@/lib/language-context'
 
 export default function Footer() {
+  const { tr } = useTranslation()
   const year = new Date().getFullYear()
 
   return (
@@ -17,58 +21,58 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-stone-400 leading-relaxed max-w-xs">
-              Made with love. Printed with purpose.
+              {tr.footer_tagline}
             </p>
           </div>
 
           {/* Links column */}
           <div className="flex flex-col gap-3">
             <h3 className="text-xs uppercase tracking-widest text-stone-500 font-inter font-medium mb-1">
-              Explore
+              {tr.footer_explore}
             </h3>
             <Link
               href="/shop"
               className="text-sm text-stone-400 hover:text-white transition-colors"
             >
-              Shop
+              {tr.nav_shop}
             </Link>
             <Link
               href="/about"
               className="text-sm text-stone-400 hover:text-white transition-colors"
             >
-              About
+              {tr.nav_about}
             </Link>
             <Link
               href="/contact"
               className="text-sm text-stone-400 hover:text-white transition-colors"
             >
-              Contact
+              {tr.footer_contact}
             </Link>
           </div>
 
           {/* Legal column */}
           <div className="flex flex-col gap-3">
             <h3 className="text-xs uppercase tracking-widest text-stone-500 font-inter font-medium mb-1">
-              Legal
+              {tr.footer_legal}
             </h3>
             <Link
               href="/privacy"
               className="text-sm text-stone-400 hover:text-white transition-colors"
             >
-              Privacy Policy
+              {tr.footer_privacy}
             </Link>
             <Link
               href="/terms"
               className="text-sm text-stone-400 hover:text-white transition-colors"
             >
-              Terms of Service
+              {tr.footer_terms}
             </Link>
           </div>
         </div>
 
         <div className="mt-10 pt-6 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stone-500">
-          <p>&copy; {year} The Heartwear Store. All rights reserved.</p>
-          <p>Thoughtfully made in Canada.</p>
+          <p>&copy; {year} {tr.footer_copyright}</p>
+          <p>{tr.footer_canada}</p>
         </div>
       </div>
     </footer>

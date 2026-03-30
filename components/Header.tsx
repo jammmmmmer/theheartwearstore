@@ -4,9 +4,12 @@ import Link from 'next/link'
 import { ShoppingBag, Leaf, Menu, X } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { useState } from 'react'
+import { useTranslation } from '@/lib/language-context'
+import LanguageToggle from '@/components/LanguageToggle'
 
 export default function Header() {
   const { totalItems, openCart } = useCartStore()
+  const { tr } = useTranslation()
   const itemCount = totalItems()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -36,29 +39,34 @@ export default function Header() {
               href="/"
               className="text-sm text-stone-600 hover:text-stone-900 tracking-wide transition-colors"
             >
-              Home
+              {tr.nav_home}
             </Link>
             <Link
               href="/shop"
               className="text-sm text-stone-600 hover:text-stone-900 tracking-wide transition-colors"
             >
-              Shop
+              {tr.nav_shop}
             </Link>
             <Link
               href="/about"
               className="text-sm text-stone-600 hover:text-stone-900 tracking-wide transition-colors"
             >
-              About
+              {tr.nav_about}
             </Link>
           </nav>
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            {/* Language toggle */}
+            <div className="hidden md:block">
+              <LanguageToggle />
+            </div>
+
             {/* Cart button */}
             <button
               onClick={openCart}
               className="relative p-2 text-stone-700 hover:text-stone-900 transition-colors"
-              aria-label={`Open cart — ${itemCount} item${itemCount !== 1 ? 's' : ''}`}
+              aria-label={`${tr.nav_open_cart} — ${itemCount} ${itemCount !== 1 ? tr.nav_items : tr.nav_item}`}
             >
               <ShoppingBag size={22} strokeWidth={1.5} />
               {itemCount > 0 && (
@@ -88,22 +96,25 @@ export default function Header() {
             onClick={() => setMobileMenuOpen(false)}
             className="text-sm text-stone-700 hover:text-stone-900 tracking-wide py-1"
           >
-            Home
+            {tr.nav_home}
           </Link>
           <Link
             href="/shop"
             onClick={() => setMobileMenuOpen(false)}
             className="text-sm text-stone-700 hover:text-stone-900 tracking-wide py-1"
           >
-            Shop
+            {tr.nav_shop}
           </Link>
           <Link
             href="/about"
             onClick={() => setMobileMenuOpen(false)}
             className="text-sm text-stone-700 hover:text-stone-900 tracking-wide py-1"
           >
-            About
+            {tr.nav_about}
           </Link>
+          <div className="pt-1 border-t border-stone-200">
+            <LanguageToggle />
+          </div>
         </nav>
       )}
     </header>

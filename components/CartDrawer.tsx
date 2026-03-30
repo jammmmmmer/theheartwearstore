@@ -6,10 +6,12 @@ import { X, Trash2, ShoppingBag } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useTranslation } from '@/lib/language-context'
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalPrice, clearCart } =
     useCartStore()
+  const { tr } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,7 +60,7 @@ export default function CartDrawer() {
         className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-stone-50 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
-        aria-label="Shopping cart"
+        aria-label={tr.cart_title}
         aria-modal="true"
         role="dialog"
       >
@@ -66,7 +68,7 @@ export default function CartDrawer() {
         <div className="flex items-center justify-between px-6 py-5 border-b border-stone-200">
           <div className="flex items-center gap-2">
             <ShoppingBag size={18} strokeWidth={1.5} className="text-stone-700" />
-            <h2 className="font-playfair text-xl text-stone-900">Your Cart</h2>
+            <h2 className="font-playfair text-xl text-stone-900">{tr.cart_title}</h2>
           </div>
           <button
             onClick={closeCart}
@@ -82,12 +84,12 @@ export default function CartDrawer() {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
               <ShoppingBag size={40} strokeWidth={1} className="text-stone-300" />
-              <p className="text-stone-500 text-sm">Your cart is empty.</p>
+              <p className="text-stone-500 text-sm">{tr.cart_empty}</p>
               <button
                 onClick={closeCart}
                 className="btn-outline text-xs"
               >
-                Continue Shopping
+                {tr.cart_continue}
               </button>
             </div>
           ) : (
@@ -180,11 +182,11 @@ export default function CartDrawer() {
             )}
 
             <div className="flex items-center justify-between">
-              <span className="text-stone-600 text-sm">Subtotal</span>
+              <span className="text-stone-600 text-sm">{tr.cart_subtotal}</span>
               <span className="text-stone-900 font-medium">{formatPrice(subtotal)}</span>
             </div>
             <p className="text-xs text-stone-400">
-              Shipping and taxes calculated at checkout.
+              {tr.cart_shipping_note}
             </p>
 
             <button
@@ -195,10 +197,10 @@ export default function CartDrawer() {
               {isLoading ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Redirecting…
+                  {tr.product_redirecting}
                 </>
               ) : (
-                'Checkout'
+                tr.cart_checkout
               )}
             </button>
 
@@ -207,13 +209,13 @@ export default function CartDrawer() {
                 onClick={closeCart}
                 className="text-stone-500 hover:text-stone-900 transition-colors underline underline-offset-2"
               >
-                Continue Shopping
+                {tr.cart_continue}
               </button>
               <button
                 onClick={clearCart}
                 className="text-stone-400 hover:text-red-500 transition-colors"
               >
-                Clear cart
+                {tr.cart_clear}
               </button>
             </div>
           </div>

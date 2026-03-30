@@ -4,9 +4,11 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { CheckCircle, Leaf } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
+import { useTranslation } from '@/lib/language-context'
 
 export default function SuccessPage() {
   const { clearCart } = useCartStore()
+  const { tr } = useTranslation()
 
   useEffect(() => {
     clearCart()
@@ -31,34 +33,33 @@ export default function SuccessPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="font-playfair text-4xl text-stone-900">Order Confirmed</h1>
+          <h1 className="font-playfair text-4xl text-stone-900">{tr.success_heading}</h1>
           <p className="text-stone-500 text-sm leading-relaxed">
-            Thank you for your purchase. You&apos;ll receive a confirmation email shortly.
-            Your order will be printed and shipped with love.
+            {tr.success_body}
           </p>
         </div>
 
         <div className="bg-stone-100 px-6 py-5 text-left space-y-2">
-          <p className="text-xs uppercase tracking-widest text-stone-500">What happens next</p>
+          <p className="text-xs uppercase tracking-widest text-stone-500">{tr.success_next_eyebrow}</p>
           <ul className="text-sm text-stone-600 space-y-1.5">
-            <li>✦ &nbsp;Your order goes straight to our print partner</li>
-            <li>✦ &nbsp;Each piece is made just for you — no mass production</li>
-            <li>✦ &nbsp;Shipping typically takes 3–7 business days</li>
-            <li>✦ &nbsp;You&apos;ll get a shipping notification by email</li>
+            <li>✦ &nbsp;{tr.success_next_1}</li>
+            <li>✦ &nbsp;{tr.success_next_2}</li>
+            <li>✦ &nbsp;{tr.success_next_3}</li>
+            <li>✦ &nbsp;{tr.success_next_4}</li>
           </ul>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/shop" className="btn-primary inline-block">
-            Keep Shopping
+            {tr.success_keep_shopping}
           </Link>
           <Link href="/" className="btn-outline inline-block">
-            Back to Home
+            {tr.success_home}
           </Link>
         </div>
 
         <p className="text-xs text-stone-400 italic">
-          &ldquo;Made with love. Printed with purpose.&rdquo;
+          {tr.success_quote}
         </p>
       </div>
     </div>

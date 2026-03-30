@@ -35,6 +35,12 @@ export async function POST(request: NextRequest) {
   // Always return 200 to Stripe to prevent retries on business logic errors
   if (event.type === 'checkout.session.completed') {
     await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session)
+  } else if (event.type === 'payment_intent.succeeded') {
+    const pi = event.data.object as Stripe.PaymentIntent
+    // Only handle Apple Pay / direct PaymentIntent payments (not from Checkout Sessions)
+    if (pi.metadata?.source === 'theheartwearstore_applepay') {
+      await handlePaymentIntentSucceeded(pi)
+    }
   }
 
   return NextResponse.json({ received: true })
@@ -168,5 +174,94 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     }
   } catch (err) {
     console.error('Error handling checkout.session.completed:', err)
+  }
+}
+
+async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
+  const db = supabaseAdmin()
+
+  try {
+    let items: CartItem[] = []
+    try {
+      items = JSON.parse(pi.metadata?.items ?? '[]') as CartItem[]
+    } catch {
+      console.error('Failed to parse items from PaymentIntent metadata')
+      return
+    }
+
+    const charge = pi.latest_charge
+      ? await stripe.charges.retrieve(typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge.id, { expand: ['billing_details'] })
+      : null
+
+    const customerName = charge?.billing_details?.name ?? ''
+    const customerEmail = charge?.billing_details?.email ?? pi.receipt_email ?? ''
+    const nameParts = customerName.trim().split(' ')
+    const firstName = nameParts[0] ?? ''
+    const lastName = nameParts.slice(1).join(' ') || firstName
+
+    const shippingAddress: ShippingAddress = {
+      line1: charge?.billing_details?.address?.line1 ?? '',
+      line2: charge?.billing_details?.address?.line2 ?? undefined,
+      city: charge?.billing_details?.address?.city ?? '',
+      state: charge?.billing_details?.address?.state ?? '',
+      postal_code: charge?.billing_details?.address?.postal_code ?? '',
+      country: charge?.billing_details?.address?.country ?? '',
+    }
+
+    const { data: orderData, error: orderError } = await db
+      .from('orders')
+      .insert({
+        stripe_payment_intent_id: pi.id,
+        customer_email: customerEmail,
+        customer_name: customerName,
+        shipping_address: shippingAddress,
+        line_items: items,
+        total_amount: pi.amount,
+        currency: pi.currency,
+        status: 'paid',
+      })
+      .select('id')
+      .single()
+
+    if (orderError) {
+      console.error('Failed to insert Apple Pay order:', orderError)
+      return
+    }
+
+    const orderId = orderData?.id as string
+    const shopId = process.env.PRINTIFY_SHOP_ID
+    if (!shopId || items.length === 0) return
+
+    try {
+      const printifyOrder = await createOrder(shopId, {
+        external_id: orderId,
+        label: `Heartwear Order #${orderId.slice(0, 8).toUpperCase()}`,
+        line_items: items.map((item) => ({
+          product_id: item.printify_id,
+          variant_id: item.variant_id,
+          quantity: item.quantity,
+        })),
+        shipping_method: Number(pi.metadata?.shipping_amount) === 1499 ? 2 : 1,
+        send_shipping_notification: true,
+        address_to: {
+          first_name: firstName,
+          last_name: lastName,
+          email: customerEmail,
+          country: shippingAddress.country,
+          region: shippingAddress.state,
+          address1: shippingAddress.line1,
+          address2: shippingAddress.line2,
+          city: shippingAddress.city,
+          zip: shippingAddress.postal_code,
+        },
+      })
+
+      await db.from('orders').update({ printify_order_id: printifyOrder.id, status: 'submitted' }).eq('id', orderId)
+    } catch (err) {
+      console.error('Failed to create Printify order from Apple Pay:', err)
+      await db.from('orders').update({ status: 'failed' }).eq('id', orderId)
+    }
+  } catch (err) {
+    console.error('Error handling payment_intent.succeeded:', err)
   }
 }

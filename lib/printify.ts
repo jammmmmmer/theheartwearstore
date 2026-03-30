@@ -4,6 +4,7 @@ function getHeaders(): HeadersInit {
   return {
     'Authorization': `Bearer ${process.env.PRINTIFY_API_KEY}`,
     'Content-Type': 'application/json',
+    'User-Agent': 'PrintifyAPIClient/1.0',
   }
 }
 
@@ -44,7 +45,7 @@ export async function getShops(): Promise<unknown[]> {
 export async function getProducts(shopId: string): Promise<unknown[]> {
   const allProducts: unknown[] = []
   let page = 1
-  const limit = 100
+  const limit = 50
 
   while (true) {
     const res = await fetch(
@@ -52,7 +53,8 @@ export async function getProducts(shopId: string): Promise<unknown[]> {
       { headers: getHeaders() }
     )
     if (!res.ok) {
-      throw new Error(`Printify getProducts failed: ${res.status} ${res.statusText}`)
+      const body = await res.text()
+      throw new Error(`Printify getProducts failed: ${res.status} ${res.statusText} - ${body}`)
     }
     const data = await res.json() as { data: unknown[]; current_page: number; last_page: number }
     allProducts.push(...data.data)

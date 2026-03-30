@@ -1,6 +1,11 @@
+'use client'
+
 import Link from 'next/link'
+import { useTranslation } from '@/lib/language-context'
 
 export default function Hero() {
+  const { tr } = useTranslation()
+
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-stone-100 via-stone-100 to-stone-200">
       {/* Decorative SVG leaf pattern */}
@@ -48,26 +53,25 @@ export default function Hero() {
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-sage-600 mb-6 font-medium">
-          Print on demand · Made to order
+          {tr.hero_eyebrow}
         </p>
 
-        <h1 className="font-playfair text-6xl sm:text-7xl lg:text-8xl text-stone-900 leading-tight mb-6">
-          Wear Your
+        <h1 className="font-playfair text-[2.75rem] sm:text-6xl lg:text-8xl text-stone-900 leading-tight mb-6">
+          {tr.hero_heading_line1}
           <br />
-          <span className="italic">Heart</span>
+          <span className="italic">{tr.hero_heading_line2}</span>
         </h1>
 
-        <p className="text-stone-600 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
-          Natural clothing that speaks across generations. Every piece made with
-          purpose, printed on demand — so nothing goes to waste.
+        <p className="text-stone-600 text-base sm:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
+          {tr.hero_body}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link href="/shop" className="btn-primary inline-block">
-            Shop Now
+            {tr.hero_cta_shop}
           </Link>
           <Link href="/about" className="btn-outline inline-block">
-            Our Story
+            {tr.hero_cta_story}
           </Link>
         </div>
 
@@ -75,15 +79,15 @@ export default function Hero() {
         <div className="mt-16 flex flex-col sm:flex-row gap-6 justify-center items-center text-xs text-stone-500 tracking-wide uppercase">
           <span className="flex items-center gap-2">
             <span className="w-1 h-1 rounded-full bg-sage-400 inline-block" />
-            No minimums
+            {tr.hero_trust_1}
           </span>
           <span className="flex items-center gap-2">
             <span className="w-1 h-1 rounded-full bg-sage-400 inline-block" />
-            Ships to Canada &amp; USA
+            {tr.hero_trust_2}
           </span>
           <span className="flex items-center gap-2">
             <span className="w-1 h-1 rounded-full bg-sage-400 inline-block" />
-            Secure checkout
+            {tr.hero_trust_3}
           </span>
         </div>
       </div>

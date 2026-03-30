@@ -1,12 +1,12 @@
+'use client'
+
 import Link from 'next/link'
 import { ShoppingBag } from 'lucide-react'
-import { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Checkout Cancelled',
-}
+import { useTranslation } from '@/lib/language-context'
 
 export default function CancelPage() {
+  const { tr } = useTranslation()
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center space-y-6">
@@ -17,23 +17,22 @@ export default function CancelPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="font-playfair text-4xl text-stone-900">No worries</h1>
+          <h1 className="font-playfair text-4xl text-stone-900">{tr.cancel_heading}</h1>
           <p className="text-stone-500 text-sm leading-relaxed">
-            Your order wasn&apos;t completed. Your cart is still waiting for you — nothing has
-            been charged.
+            {tr.cancel_body}
           </p>
         </div>
 
         <div className="bg-stone-100 px-6 py-4 text-sm text-stone-600 italic">
-          &ldquo;Good things don&apos;t rush. Come back when it feels right.&rdquo;
+          {tr.cancel_quote}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/shop" className="btn-primary inline-block">
-            Back to Shop
+            {tr.cancel_shop}
           </Link>
           <Link href="/" className="btn-outline inline-block">
-            Back to Home
+            {tr.cancel_home}
           </Link>
         </div>
       </div>
