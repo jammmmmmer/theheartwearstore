@@ -77,7 +77,7 @@ async function sendApprovalEmail(params: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: `The Heartwear Store <noreply@${process.env.EMAIL_DOMAIN || 'theheartwearstore.ca'}>`,
+      from: `The Heartwear Store <onboarding@resend.dev>`,
       to: process.env.OWNER_EMAIL!,
       subject: `New Design Ready: ${title}`,
       html,
