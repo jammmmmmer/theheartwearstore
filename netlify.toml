@@ -8,6 +8,10 @@
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
 
+[functions]
+  directory = "netlify/functions"
+  timeout = 26
+
 [[headers]]
   for = "/api/webhooks/*"
   [headers.values]
@@ -17,7 +21,3 @@
   for = "/api/auto-product/*"
   [headers.values]
     Cache-Control = "no-store"
-
-[functions]
-  directory = "netlify/functions"
-  timeout = 26
