@@ -85,7 +85,7 @@ export default function UploadDesignPage() {
       const imgRes = await fetch('/api/auto-product/upload-image', { method: 'POST', body: formData })
       const imgText = await imgRes.text()
       let imgData: { ok?: boolean; imageId?: string; title?: string; error?: string }
-      try { imgData = JSON.parse(imgText) } catch { throw new Error(`Server error ${imgRes.status} — try again`) }
+      try { imgData = JSON.parse(imgText) } catch { throw new Error(`${imgRes.status}: ${imgText.slice(0, 300)}`) }
       if (!imgRes.ok) throw new Error(imgData.error || `Server error ${imgRes.status}`)
 
       const { imageId, title: resolvedTitle } = imgData as { imageId: string; title: string }
