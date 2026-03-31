@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { ShoppingBag, Menu, X } from 'lucide-react'
+import Logo from '@/components/Logo'
 import { useCartStore } from '@/lib/cart-store'
 import { useState } from 'react'
 import { useTranslation } from '@/lib/language-context'
@@ -24,14 +24,7 @@ export default function Header() {
             className="flex items-center group"
             aria-label="The Heartwear Store — home"
           >
-            <Image
-              src="/logo.png"
-              alt="The Heartwear Store"
-              width={160}
-              height={60}
-              className="h-10 w-auto brightness-0 invert group-hover:opacity-80 transition-opacity"
-              priority
-            />
+            <Logo className="h-10 w-auto group-hover:opacity-80 transition-opacity" variant="light" />
           </Link>
 
           {/* Desktop Nav */}
