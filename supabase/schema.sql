@@ -72,3 +72,23 @@ create policy "Products are publicly readable"
 create policy "Orders are private"
   on orders for all
   using (false);
+
+-- Pending products (awaiting Jamie's approval before going live)
+create table if not exists pending_products (
+  id uuid primary key default gen_random_uuid(),
+  printify_id text not null,
+  title text not null,
+  topic text not null,
+  mockup_url text,
+  status text default 'pending',  -- 'pending' | 'approved' | 'rejected'
+  expires_at timestamptz not null,
+  created_at timestamptz default now()
+);
+
+create index if not exists pending_products_status_idx on pending_products(status);
+
+alter table pending_products enable row level security;
+
+create policy "Pending products are private"
+  on pending_products for all
+  using (false);

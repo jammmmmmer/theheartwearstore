@@ -12,3 +12,11 @@
   for = "/api/webhooks/*"
   [headers.values]
     Cache-Control = "no-store"
+
+[[headers]]
+  for = "/api/auto-product/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[functions]
+  directory = "netlify/functions"

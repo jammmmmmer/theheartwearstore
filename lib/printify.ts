@@ -79,6 +79,85 @@ export async function getProduct(shopId: string, productId: string): Promise<unk
   return res.json()
 }
 
+// ─── Auto-product functions ────────────────────────────────────────────────
+
+export async function uploadImageToPrintify(
+  base64Contents: string,
+  fileName: string
+): Promise<{ id: string; preview_url: string }> {
+  const res = await fetch(`${PRINTIFY_BASE_URL}/uploads/images.json`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ file_name: fileName, contents: base64Contents }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Printify uploadImage failed: ${res.status} - ${err}`)
+  }
+  return res.json()
+}
+
+export async function createDraftProduct(
+  shopId: string,
+  payload: {
+    title: string
+    description: string
+    tags: string[]
+    blueprint_id: number
+    print_provider_id: number
+    variants: { id: number; price: number; is_enabled: boolean }[]
+    print_areas: {
+      variant_ids: number[]
+      placeholders: {
+        position: string
+        images: { id: string; x: number; y: number; scale: number; angle: number }[]
+      }[]
+    }[]
+  }
+): Promise<{ id: string; images: { src: string; is_default: boolean }[] }> {
+  const res = await fetch(`${PRINTIFY_BASE_URL}/shops/${shopId}/products.json`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Printify createDraftProduct failed: ${res.status} - ${err}`)
+  }
+  return res.json()
+}
+
+export async function publishProduct(shopId: string, productId: string): Promise<void> {
+  const res = await fetch(
+    `${PRINTIFY_BASE_URL}/shops/${shopId}/products/${productId}/publish.json`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        title: true, description: true, images: true,
+        variants: true, tags: true, keyFeatures: true, shipping_template: true,
+      }),
+    }
+  )
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Printify publishProduct failed: ${res.status} - ${err}`)
+  }
+}
+
+export async function deleteProduct(shopId: string, productId: string): Promise<void> {
+  const res = await fetch(
+    `${PRINTIFY_BASE_URL}/shops/${shopId}/products/${productId}.json`,
+    { method: 'DELETE', headers: getHeaders() }
+  )
+  if (!res.ok && res.status !== 404) {
+    const err = await res.text()
+    throw new Error(`Printify deleteProduct failed: ${res.status} - ${err}`)
+  }
+}
+
+// ─── Orders ────────────────────────────────────────────────────────────────
+
 export async function createOrder(
   shopId: string,
   order: PrintifyOrderPayload
