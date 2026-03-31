@@ -49,7 +49,7 @@ export async function signToken(
   const key = await getKey(secret)
   const enc = new TextEncoder()
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(signingInput))
-  const signature = base64url(Buffer.from(sig).toString('base64'))
+  const signature = Buffer.from(sig).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 
   return `${signingInput}.${signature}`
 }
