@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       ? Math.min(...enabledVariants.map(v => v.price))
       : product.variants[0]?.price || 0
 
-    await supabaseAdmin()
+    const { error: upsertError } = await supabaseAdmin()
       .from('products')
       .upsert({
         printify_id: product.id,
@@ -80,6 +80,8 @@ export async function GET(request: NextRequest) {
         price_from: priceFrom,
         is_enabled: true,
       }, { onConflict: 'printify_id' })
+
+    if (upsertError) throw new Error(`Supabase upsert failed: ${upsertError.message}`)
 
     // 5. Mark as approved
     await supabaseAdmin()
