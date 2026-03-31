@@ -60,7 +60,7 @@ export default function UploadDesignPage() {
       try { data = JSON.parse(text) } catch { throw new Error(res.ok ? 'Unexpected server response' : `Server error ${res.status} — try again`) }
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`)
 
-      setOptions(data.options)
+      setOptions(data.options ?? [])
       setStage('done')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong')
