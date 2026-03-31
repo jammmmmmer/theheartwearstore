@@ -55,7 +55,9 @@ export default function UploadDesignPage() {
       if (title.trim()) formData.append('title', title.trim())
 
       const res = await fetch('/api/auto-product/upload', { method: 'POST', body: formData })
-      const data = await res.json()
+      const text = await res.text()
+      let data: { error?: string; options?: PlacementOption[] }
+      try { data = JSON.parse(text) } catch { throw new Error(res.ok ? 'Unexpected server response' : `Server error ${res.status} — try again`) }
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`)
 
       setOptions(data.options)
