@@ -1,19 +1,16 @@
 /**
  * POST /api/auto-product/upload
- *
- * Creates 3 Printify draft products with different placements:
- * 1. Small image — right chest front
- * 2. Full image — front
- * 3. Full image back + small chest front
+ * Step 2: Create ONE Printify draft product for a given placement.
+ * Called 3× in parallel from the client (one per placement key).
+ * Each call is lean enough to fit within the 10-second free-plan limit.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { uploadImageToPrintify, createDraftProduct } from '@/lib/printify'
+import { createDraftProduct } from '@/lib/printify'
 import { signToken } from '@/lib/approval-token'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
 
 const BLUEPRINT_ID = 145
 const PRINT_PROVIDER_ID = 6
@@ -74,115 +71,87 @@ const PLACEMENTS = [
   },
 ]
 
-async function createPlacementProduct(
-  shopId: string,
-  imageId: string,
-  title: string,
-  description: string,
-  placement: typeof PLACEMENTS[number]
-) {
-  const print_areas = placement.print_areas.map(area => ({
-    ...area,
-    placeholders: area.placeholders.map(ph => ({
-      ...ph,
-      images: ph.images.map(img => ({ ...img, id: imageId })),
-    })),
-  }))
-
-  return createDraftProduct(shopId, {
-    title: `${title} (${placement.label})`,
-    description,
-    tags: ['heartwear', 'unisex', 't-shirt', 'custom'],
-    blueprint_id: BLUEPRINT_ID,
-    print_provider_id: PRINT_PROVIDER_ID,
-    variants: ALL_VARIANT_IDS.map(id => ({
-      id,
-      price: 3999,
-      is_enabled: ENABLED_VARIANT_IDS.includes(id),
-    })),
-    print_areas,
-  })
-}
-
 export async function POST(request: NextRequest) {
   const shopId = process.env.PRINTIFY_SHOP_ID!
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!
 
   try {
-    const formData = await request.formData()
+    const body = await request.json() as {
+      secret: string
+      imageId: string
+      title: string
+      placementKey: string
+    }
 
-    const secret = formData.get('secret') as string
-    if (!secret || secret !== process.env.SYNC_SECRET) {
+    if (!body.secret || body.secret !== process.env.SYNC_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const file = formData.get('image') as File | null
-    if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 })
-
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Image must be PNG, JPG, or WebP' }, { status: 400 })
+    const placement = PLACEMENTS.find(p => p.key === body.placementKey)
+    if (!placement) {
+      return NextResponse.json({ error: 'Invalid placement key' }, { status: 400 })
     }
 
-    const rawTitle = (formData.get('title') as string | null)?.trim()
-    const baseTitle = rawTitle || 'Heartwear Design Tee'
+    const { imageId, title } = body
     const description = `A unique design from The Heartwear Store. Made from 100% combed ring-spun cotton, printed on demand.`
 
-    // Upload image once, reuse across all placements
-    const arrayBuffer = await file.arrayBuffer()
-    const base64Contents = Buffer.from(arrayBuffer).toString('base64')
-    const fileName = `heartwear-upload-${Date.now()}.png`
-    console.log('[upload] Uploading image to Printify...')
-    const uploadedImage = await uploadImageToPrintify(base64Contents, fileName)
+    // Inject imageId into print areas
+    const print_areas = placement.print_areas.map(area => ({
+      ...area,
+      placeholders: area.placeholders.map(ph => ({
+        ...ph,
+        images: ph.images.map(img => ({ ...img, id: imageId })),
+      })),
+    }))
 
-    // Create 3 draft products in parallel
-    console.log('[upload] Creating 3 draft products...')
-    const products = await Promise.all(
-      PLACEMENTS.map(placement =>
-        createPlacementProduct(shopId, uploadedImage.id, baseTitle, description, placement)
-      )
-    )
+    const product = await createDraftProduct(shopId, {
+      title: `${title} (${placement.label})`,
+      description,
+      tags: ['heartwear', 'unisex', 't-shirt', 'custom'],
+      blueprint_id: BLUEPRINT_ID,
+      print_provider_id: PRINT_PROVIDER_ID,
+      variants: ALL_VARIANT_IDS.map(id => ({
+        id,
+        price: 3999,
+        is_enabled: ENABLED_VARIANT_IDS.includes(id),
+      })),
+      print_areas,
+    })
 
-    // Store each in pending_products and generate tokens
-    const options = await Promise.all(
-      products.map(async (product, i) => {
-        const placement = PLACEMENTS[i]
-        const printifyId = product.id
-        const mockupUrl = product.images?.find(img => img.is_default)?.src || product.images?.[0]?.src || ''
+    const printifyId = product.id
+    const mockupUrl = product.images?.find((img: { is_default: boolean }) => img.is_default)?.src
+      || product.images?.[0]?.src
+      || ''
 
-        const { data: pending, error: dbError } = await supabaseAdmin()
-          .from('pending_products')
-          .insert({
-            printify_id: printifyId,
-            title: `${baseTitle} (${placement.label})`,
-            topic: `manual-upload-${placement.key}`,
-            mockup_url: mockupUrl,
-            status: 'pending',
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          })
-          .select('id')
-          .single()
-
-        if (dbError) throw new Error(`DB insert failed: ${dbError.message}`)
-
-        const pendingId = pending.id
-        const [approveToken, rejectToken] = await Promise.all([
-          signToken({ pendingId, printifyId, action: 'approve' }),
-          signToken({ pendingId, printifyId, action: 'reject' }),
-        ])
-
-        return {
-          key: placement.key,
-          label: placement.label,
-          mockupUrl,
-          approveUrl: `${siteUrl}/api/auto-product/approve?token=${approveToken}`,
-          rejectUrl: `${siteUrl}/api/auto-product/reject?token=${rejectToken}`,
-        }
+    const { data: pending, error: dbError } = await supabaseAdmin()
+      .from('pending_products')
+      .insert({
+        printify_id: printifyId,
+        title: `${title} (${placement.label})`,
+        topic: `manual-upload-${placement.key}`,
+        mockup_url: mockupUrl,
+        status: 'pending',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       })
-    )
+      .select('id')
+      .single()
 
-    console.log('[upload] Done. 3 placement options ready.')
-    return NextResponse.json({ ok: true, title: baseTitle, options })
+    if (dbError) throw new Error(`DB insert failed: ${dbError.message}`)
+
+    const pendingId = pending.id
+    const [approveToken, rejectToken] = await Promise.all([
+      signToken({ pendingId, printifyId, action: 'approve' }),
+      signToken({ pendingId, printifyId, action: 'reject' }),
+    ])
+
+    return NextResponse.json({
+      ok: true,
+      key: placement.key,
+      label: placement.label,
+      mockupUrl,
+      approveUrl: `${siteUrl}/api/auto-product/approve?token=${approveToken}`,
+      rejectUrl: `${siteUrl}/api/auto-product/reject?token=${rejectToken}`,
+    })
   } catch (err) {
     console.error('[upload] Error:', err)
     return NextResponse.json(

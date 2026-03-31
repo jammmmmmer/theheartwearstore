@@ -49,18 +49,38 @@ export default function UploadDesignPage() {
     setErrorMsg('')
 
     try {
+      // Step 1: upload image to Printify, get imageId
       const formData = new FormData()
       formData.append('image', file)
       formData.append('secret', secret)
       if (title.trim()) formData.append('title', title.trim())
 
-      const res = await fetch('/api/auto-product/upload', { method: 'POST', body: formData })
-      const text = await res.text()
-      let data: { error?: string; options?: PlacementOption[] }
-      try { data = JSON.parse(text) } catch { throw new Error(res.ok ? 'Unexpected server response' : `Server error ${res.status} — try again`) }
-      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`)
+      const imgRes = await fetch('/api/auto-product/upload-image', { method: 'POST', body: formData })
+      const imgText = await imgRes.text()
+      let imgData: { ok?: boolean; imageId?: string; title?: string; error?: string }
+      try { imgData = JSON.parse(imgText) } catch { throw new Error(`Server error ${imgRes.status} — try again`) }
+      if (!imgRes.ok) throw new Error(imgData.error || `Server error ${imgRes.status}`)
 
-      setOptions(data.options ?? [])
+      const { imageId, title: resolvedTitle } = imgData as { imageId: string; title: string }
+
+      // Step 2: create 3 products in parallel, one API call each
+      const placementKeys = ['small_front', 'full_front', 'full_back_small_front']
+      const results = await Promise.all(
+        placementKeys.map(async (placementKey) => {
+          const res = await fetch('/api/auto-product/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret, imageId, title: resolvedTitle, placementKey }),
+          })
+          const text = await res.text()
+          let data: PlacementOption & { ok?: boolean; error?: string }
+          try { data = JSON.parse(text) } catch { throw new Error(`Server error ${res.status} — try again`) }
+          if (!res.ok) throw new Error((data as { error?: string }).error || `Server error ${res.status}`)
+          return data as PlacementOption
+        })
+      )
+
+      setOptions(results)
       setStage('done')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong')
