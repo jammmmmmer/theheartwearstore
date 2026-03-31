@@ -23,6 +23,32 @@ export default function UploadDesignPage() {
   const [options, setOptions] = useState<PlacementOption[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Compress image to stay under Netlify's 6MB function body limit
+  const compressImage = (f: File): Promise<File> => {
+    return new Promise((resolve) => {
+      // Under 3MB — fine as-is
+      if (f.size < 3 * 1024 * 1024) { resolve(f); return }
+      const img = new Image()
+      const url = URL.createObjectURL(f)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const MAX = 2000
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob((blob) => {
+          if (blob) resolve(new File([blob], f.name, { type: 'image/png' }))
+          else resolve(f)
+        }, 'image/png')
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(f) }
+      img.src = url
+    })
+  }
+
   const handleFile = (f: File) => {
     setFile(f)
     setPreview(URL.createObjectURL(f))
@@ -50,8 +76,9 @@ export default function UploadDesignPage() {
 
     try {
       // Step 1: upload image to Printify, get imageId
+      const compressed = await compressImage(file)
       const formData = new FormData()
-      formData.append('image', file)
+      formData.append('image', compressed)
       formData.append('secret', secret)
       if (title.trim()) formData.append('title', title.trim())
 
