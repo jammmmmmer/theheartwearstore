@@ -21,7 +21,33 @@ export default function UploadDesignPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [dragging, setDragging] = useState(false)
   const [options, setOptions] = useState<PlacementOption[]>([])
+  const [cardStates, setCardStates] = useState<Record<string, 'idle' | 'loading' | 'approved' | 'rejected'>>({})
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleApprove = async (opt: PlacementOption) => {
+    setCardStates(s => ({ ...s, [opt.key]: 'loading' }))
+    try {
+      const res = await fetch(opt.approveUrl)
+      if (!res.ok) throw new Error()
+      setCardStates(s => ({ ...s, [opt.key]: 'approved' }))
+    } catch {
+      setCardStates(s => ({ ...s, [opt.key]: 'idle' }))
+      alert('Approve failed — try again')
+    }
+  }
+
+  const handleReject = async (opt: PlacementOption) => {
+    setCardStates(s => ({ ...s, [opt.key]: 'loading' }))
+    try {
+      const res = await fetch(opt.rejectUrl)
+      if (!res.ok) throw new Error()
+      setCardStates(s => ({ ...s, [opt.key]: 'rejected' }))
+    } catch {
+      setCardStates(s => ({ ...s, [opt.key]: 'idle' }))
+      alert('Reject failed — try again')
+    }
+  }
 
   // Compress image to stay under Netlify's 6MB function body limit
   const compressImage = (f: File): Promise<File> => {
@@ -117,7 +143,7 @@ export default function UploadDesignPage() {
 
   const reset = () => {
     setStage('form'); setFile(null); setPreview(null)
-    setTitle(''); setOptions([])
+    setTitle(''); setOptions([]); setCardStates({}); setSelectedKey(null)
   }
 
   if (stage === 'done') {
@@ -131,41 +157,68 @@ export default function UploadDesignPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            {options.map((opt, i) => (
-              <div key={opt.key} className="border border-stone-800 bg-stone-900/40">
-                {/* Label */}
-                <div className="px-4 pt-4 pb-2">
-                  <p className="text-[9px] tracking-[0.4em] uppercase text-sage-600 mb-1">Option {i + 1}</p>
-                  <p className="text-stone-300 text-sm font-medium">{opt.label}</p>
-                </div>
+            {options.map((opt, i) => {
+              const state = cardStates[opt.key] ?? 'idle'
+              const isSelected = selectedKey === opt.key
+              const isApproved = state === 'approved'
+              const isRejected = state === 'rejected'
+              const isLoading = state === 'loading'
 
-                {/* Mockup */}
-                {opt.mockupUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={opt.mockupUrl} alt={opt.label} className="w-full aspect-square object-cover" />
-                ) : (
-                  <div className="w-full aspect-square bg-stone-900 flex items-center justify-center">
-                    <p className="text-stone-600 text-xs">Mockup loading…</p>
+              return (
+                <div
+                  key={opt.key}
+                  onClick={() => { if (state === 'idle') setSelectedKey(opt.key) }}
+                  className={`border transition-all duration-200 cursor-pointer ${
+                    isApproved ? 'border-sage-500 bg-sage-900/20' :
+                    isRejected ? 'border-stone-700 bg-stone-900/20 opacity-40' :
+                    isSelected ? 'border-sage-600 bg-stone-900/60 ring-1 ring-sage-700' :
+                    'border-stone-800 bg-stone-900/40 hover:border-stone-600'
+                  }`}
+                >
+                  {/* Label */}
+                  <div className="px-4 pt-4 pb-2">
+                    <p className="text-[9px] tracking-[0.4em] uppercase text-sage-600 mb-1">Option {i + 1}</p>
+                    <p className="text-stone-300 text-sm font-medium">{opt.label}</p>
                   </div>
-                )}
 
-                {/* Actions */}
-                <div className="p-4 flex flex-col gap-2">
-                  <a
-                    href={opt.approveUrl}
-                    className="block text-center bg-sage-700 border border-sage-600 text-stone-100 py-3 text-[9px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors"
-                  >
-                    ✓ Approve &amp; Publish
-                  </a>
-                  <a
-                    href={opt.rejectUrl}
-                    className="block text-center border border-stone-700 text-stone-600 py-3 text-[9px] tracking-[0.4em] uppercase hover:border-stone-500 hover:text-stone-400 transition-colors"
-                  >
-                    ✕ Reject &amp; Delete
-                  </a>
+                  {/* Mockup */}
+                  {opt.mockupUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={opt.mockupUrl} alt={opt.label} className="w-full aspect-square object-cover" />
+                  ) : (
+                    <div className="w-full aspect-square bg-stone-900 flex items-center justify-center">
+                      <p className="text-stone-600 text-xs">Mockup loading…</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="p-4 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                    {isApproved ? (
+                      <div className="text-center text-sage-500 text-[9px] tracking-[0.4em] uppercase py-3">✓ Published</div>
+                    ) : isRejected ? (
+                      <div className="text-center text-stone-600 text-[9px] tracking-[0.4em] uppercase py-3">✕ Deleted</div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleApprove(opt)}
+                          disabled={isLoading}
+                          className="w-full text-center bg-sage-700 border border-sage-600 text-stone-100 py-3 text-[9px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors disabled:opacity-50"
+                        >
+                          {isLoading ? 'Working…' : '✓ Approve & Publish'}
+                        </button>
+                        <button
+                          onClick={() => handleReject(opt)}
+                          disabled={isLoading}
+                          className="w-full text-center border border-stone-700 text-stone-600 py-3 text-[9px] tracking-[0.4em] uppercase hover:border-stone-500 hover:text-stone-400 transition-colors disabled:opacity-50"
+                        >
+                          ✕ Reject & Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="text-center">
