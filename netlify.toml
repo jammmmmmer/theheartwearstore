@@ -10,7 +10,6 @@
 
 [functions]
   directory = "netlify/functions"
-  timeout = 26
 
 [[headers]]
   for = "/api/webhooks/*"
