@@ -175,11 +175,16 @@ export async function POST(request: NextRequest) {
     const approveUrl = `${siteUrl}/api/auto-product/approve?token=${approveToken}`
     const rejectUrl = `${siteUrl}/api/auto-product/reject?token=${rejectToken}`
 
-    console.log('[upload-product] Sending approval email...')
-    await sendApprovalEmail({ title, mockupUrl, approveUrl, rejectUrl })
+    // Try email — but don't fail if it doesn't work
+    try {
+      console.log('[upload-product] Sending approval email...')
+      await sendApprovalEmail({ title, mockupUrl, approveUrl, rejectUrl })
+    } catch (emailErr) {
+      console.warn('[upload-product] Email failed (non-fatal):', emailErr)
+    }
 
     console.log(`[upload-product] Done. Product ${printifyId} pending approval.`)
-    return NextResponse.json({ ok: true, title, printifyId, pendingId })
+    return NextResponse.json({ ok: true, title, printifyId, pendingId, mockupUrl, approveUrl, rejectUrl })
   } catch (err) {
     console.error('[upload-product] Error:', err)
     return NextResponse.json(

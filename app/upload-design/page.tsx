@@ -4,6 +4,13 @@ import { useState, useRef, useCallback } from 'react'
 
 type Stage = 'form' | 'uploading' | 'done' | 'error'
 
+interface DoneData {
+  title: string
+  mockupUrl: string
+  approveUrl: string
+  rejectUrl: string
+}
+
 export default function UploadDesignPage() {
   const [stage, setStage] = useState<Stage>('form')
   const [file, setFile] = useState<File | null>(null)
@@ -12,12 +19,12 @@ export default function UploadDesignPage() {
   const [secret, setSecret] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [dragging, setDragging] = useState(false)
+  const [doneData, setDoneData] = useState<DoneData | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = (f: File) => {
     setFile(f)
-    const url = URL.createObjectURL(f)
-    setPreview(url)
+    setPreview(URL.createObjectURL(f))
   }
 
   const onDrop = useCallback((e: React.DragEvent) => {
@@ -27,13 +34,8 @@ export default function UploadDesignPage() {
     if (f) handleFile(f)
   }, [])
 
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(true)
-  }
-
+  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setDragging(true) }
   const onDragLeave = () => setDragging(false)
-
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (f) handleFile(f)
@@ -42,7 +44,6 @@ export default function UploadDesignPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!file) return
-
     setStage('uploading')
     setErrorMsg('')
 
@@ -52,16 +53,17 @@ export default function UploadDesignPage() {
       formData.append('secret', secret)
       if (title.trim()) formData.append('title', title.trim())
 
-      const res = await fetch('/api/auto-product/upload', {
-        method: 'POST',
-        body: formData,
+      const res = await fetch('/api/auto-product/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`)
+
+      setDoneData({
+        title: data.title,
+        mockupUrl: data.mockupUrl,
+        approveUrl: data.approveUrl,
+        rejectUrl: data.rejectUrl,
       })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || `Server error ${res.status}`)
-      }
-
       setStage('done')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong')
@@ -69,21 +71,39 @@ export default function UploadDesignPage() {
     }
   }
 
-  if (stage === 'done') {
+  const reset = () => { setStage('form'); setFile(null); setPreview(null); setTitle(''); setDoneData(null) }
+
+  if (stage === 'done' && doneData) {
     return (
-      <main className="min-h-screen bg-stone-950 flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-sage-900/40 flex items-center justify-center mx-auto mb-6">
-            <span className="text-2xl text-sage-400">✓</span>
+      <main className="min-h-screen bg-stone-950 flex items-center justify-center px-4 py-16">
+        <div className="max-w-lg w-full text-center">
+          <p className="text-[10px] tracking-[0.5em] uppercase text-sage-700 mb-3">The Heartwear Store</p>
+          <h1 className="font-playfair text-3xl text-stone-50 mb-2">Design ready!</h1>
+          <p className="text-stone-500 text-sm mb-8">Here&apos;s how it looks on the tee. Approve to publish, or reject to delete the draft.</p>
+
+          {doneData.mockupUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={doneData.mockupUrl} alt={doneData.title} className="w-full max-h-80 object-contain bg-stone-900 mb-8" />
+          )}
+
+          <p className="text-stone-400 text-sm font-playfair italic mb-8">{doneData.title}</p>
+
+          <div className="flex flex-col sm:flex-row gap-3 mb-8">
+            <a
+              href={doneData.approveUrl}
+              className="flex-1 bg-sage-700 border border-sage-600 text-stone-100 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors text-center"
+            >
+              ✓ Approve &amp; Publish
+            </a>
+            <a
+              href={doneData.rejectUrl}
+              className="flex-1 border border-stone-700 text-stone-500 py-4 text-[10px] tracking-[0.4em] uppercase hover:border-stone-500 hover:text-stone-300 transition-colors text-center"
+            >
+              ✕ Reject &amp; Delete
+            </a>
           </div>
-          <h1 className="text-2xl font-playfair text-stone-50 mb-3">Design submitted!</h1>
-          <p className="text-stone-400 text-sm leading-relaxed mb-8">
-            Your design has been uploaded to Printify as a draft. Check your email — you&apos;ll get an approve/reject link with a mockup preview.
-          </p>
-          <button
-            onClick={() => { setStage('form'); setFile(null); setPreview(null); setTitle(''); }}
-            className="text-xs tracking-[0.3em] uppercase text-sage-600 hover:text-sage-400 transition-colors"
-          >
+
+          <button onClick={reset} className="text-xs tracking-[0.3em] uppercase text-stone-700 hover:text-stone-500 transition-colors">
             Upload another
           </button>
         </div>
@@ -95,18 +115,16 @@ export default function UploadDesignPage() {
     <main className="min-h-screen bg-stone-950 flex items-center justify-center px-4 py-16">
       <div className="max-w-lg w-full">
 
-        {/* Header */}
         <div className="text-center mb-10">
           <p className="text-[10px] tracking-[0.5em] uppercase text-sage-700 mb-3">The Heartwear Store</p>
           <h1 className="font-playfair text-3xl text-stone-50 mb-2">Upload a Design</h1>
-          <p className="text-stone-500 text-sm">Drop your image below. We&apos;ll put it on a tee and email you a preview to approve.</p>
+          <p className="text-stone-500 text-sm">Drop your image below. We&apos;ll put it on a tee for you to approve.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Drop zone */}
           <div
-            className={`relative border-2 border-dashed rounded-none transition-colors cursor-pointer ${
+            className={`relative border-2 border-dashed transition-colors cursor-pointer ${
               dragging ? 'border-sage-600 bg-sage-900/10' : 'border-stone-700 hover:border-stone-500'
             }`}
             onDrop={onDrop}
@@ -114,25 +132,12 @@ export default function UploadDesignPage() {
             onDragLeave={onDragLeave}
             onClick={() => inputRef.current?.click()}
           >
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={onInputChange}
-            />
-
+            <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onInputChange} />
             {preview ? (
               <div className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={preview}
-                  alt="Design preview"
-                  className="w-full max-h-80 object-contain bg-stone-900 p-6"
-                />
-                <div className="absolute bottom-2 right-3 text-[9px] tracking-[0.3em] uppercase text-stone-600">
-                  Click to change
-                </div>
+                <img src={preview} alt="Design preview" className="w-full max-h-80 object-contain bg-stone-900 p-6" />
+                <div className="absolute bottom-2 right-3 text-[9px] tracking-[0.3em] uppercase text-stone-600">Click to change</div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
@@ -145,7 +150,6 @@ export default function UploadDesignPage() {
             )}
           </div>
 
-          {/* Title */}
           <div>
             <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">
               Product Title <span className="text-stone-700 normal-case tracking-normal">(optional)</span>
@@ -159,11 +163,8 @@ export default function UploadDesignPage() {
             />
           </div>
 
-          {/* Secret */}
           <div>
-            <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">
-              Password
-            </label>
+            <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">Password</label>
             <input
               type="password"
               value={secret}
@@ -173,12 +174,8 @@ export default function UploadDesignPage() {
             />
           </div>
 
-          {/* Error */}
-          {stage === 'error' && (
-            <p className="text-red-400 text-xs tracking-wide">{errorMsg}</p>
-          )}
+          {stage === 'error' && <p className="text-red-400 text-xs tracking-wide">{errorMsg}</p>}
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={!file || !secret || stage === 'uploading'}
@@ -188,7 +185,7 @@ export default function UploadDesignPage() {
           </button>
 
           <p className="text-center text-[10px] text-stone-700 tracking-wide">
-            This creates a draft in Printify — nothing goes live until you approve it in the email.
+            Nothing goes live until you approve it.
           </p>
         </form>
       </div>
