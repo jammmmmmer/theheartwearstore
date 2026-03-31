@@ -4,8 +4,9 @@ import { useState, useRef, useCallback } from 'react'
 
 type Stage = 'form' | 'uploading' | 'done' | 'error'
 
-interface DoneData {
-  title: string
+interface PlacementOption {
+  key: string
+  label: string
   mockupUrl: string
   approveUrl: string
   rejectUrl: string
@@ -19,7 +20,7 @@ export default function UploadDesignPage() {
   const [secret, setSecret] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [dragging, setDragging] = useState(false)
-  const [doneData, setDoneData] = useState<DoneData | null>(null)
+  const [options, setOptions] = useState<PlacementOption[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = (f: File) => {
@@ -55,15 +56,9 @@ export default function UploadDesignPage() {
 
       const res = await fetch('/api/auto-product/upload', { method: 'POST', body: formData })
       const data = await res.json()
-
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`)
 
-      setDoneData({
-        title: data.title,
-        mockupUrl: data.mockupUrl,
-        approveUrl: data.approveUrl,
-        rejectUrl: data.rejectUrl,
-      })
+      setOptions(data.options)
       setStage('done')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong')
@@ -71,41 +66,64 @@ export default function UploadDesignPage() {
     }
   }
 
-  const reset = () => { setStage('form'); setFile(null); setPreview(null); setTitle(''); setDoneData(null) }
+  const reset = () => {
+    setStage('form'); setFile(null); setPreview(null)
+    setTitle(''); setOptions([])
+  }
 
-  if (stage === 'done' && doneData) {
+  if (stage === 'done') {
     return (
-      <main className="min-h-screen bg-stone-950 flex items-center justify-center px-4 py-16">
-        <div className="max-w-lg w-full text-center">
-          <p className="text-[10px] tracking-[0.5em] uppercase text-sage-700 mb-3">The Heartwear Store</p>
-          <h1 className="font-playfair text-3xl text-stone-50 mb-2">Design ready!</h1>
-          <p className="text-stone-500 text-sm mb-8">Here&apos;s how it looks on the tee. Approve to publish, or reject to delete the draft.</p>
-
-          {doneData.mockupUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={doneData.mockupUrl} alt={doneData.title} className="w-full max-h-80 object-contain bg-stone-900 mb-8" />
-          )}
-
-          <p className="text-stone-400 text-sm font-playfair italic mb-8">{doneData.title}</p>
-
-          <div className="flex flex-col sm:flex-row gap-3 mb-8">
-            <a
-              href={doneData.approveUrl}
-              className="flex-1 bg-sage-700 border border-sage-600 text-stone-100 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors text-center"
-            >
-              ✓ Approve &amp; Publish
-            </a>
-            <a
-              href={doneData.rejectUrl}
-              className="flex-1 border border-stone-700 text-stone-500 py-4 text-[10px] tracking-[0.4em] uppercase hover:border-stone-500 hover:text-stone-300 transition-colors text-center"
-            >
-              ✕ Reject &amp; Delete
-            </a>
+      <main className="min-h-screen bg-stone-950 px-4 py-16">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-[10px] tracking-[0.5em] uppercase text-sage-700 mb-3">The Heartwear Store</p>
+            <h1 className="font-playfair text-3xl text-stone-50 mb-2">Choose Your Placement</h1>
+            <p className="text-stone-500 text-sm">3 mockups generated. Approve the ones you want published — reject to delete the draft.</p>
           </div>
 
-          <button onClick={reset} className="text-xs tracking-[0.3em] uppercase text-stone-700 hover:text-stone-500 transition-colors">
-            Upload another
-          </button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            {options.map((opt, i) => (
+              <div key={opt.key} className="border border-stone-800 bg-stone-900/40">
+                {/* Label */}
+                <div className="px-4 pt-4 pb-2">
+                  <p className="text-[9px] tracking-[0.4em] uppercase text-sage-600 mb-1">Option {i + 1}</p>
+                  <p className="text-stone-300 text-sm font-medium">{opt.label}</p>
+                </div>
+
+                {/* Mockup */}
+                {opt.mockupUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={opt.mockupUrl} alt={opt.label} className="w-full aspect-square object-cover" />
+                ) : (
+                  <div className="w-full aspect-square bg-stone-900 flex items-center justify-center">
+                    <p className="text-stone-600 text-xs">Mockup loading…</p>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="p-4 flex flex-col gap-2">
+                  <a
+                    href={opt.approveUrl}
+                    className="block text-center bg-sage-700 border border-sage-600 text-stone-100 py-3 text-[9px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors"
+                  >
+                    ✓ Approve &amp; Publish
+                  </a>
+                  <a
+                    href={opt.rejectUrl}
+                    className="block text-center border border-stone-700 text-stone-600 py-3 text-[9px] tracking-[0.4em] uppercase hover:border-stone-500 hover:text-stone-400 transition-colors"
+                  >
+                    ✕ Reject &amp; Delete
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <button onClick={reset} className="text-xs tracking-[0.3em] uppercase text-stone-700 hover:text-stone-500 transition-colors">
+              Upload another design
+            </button>
+          </div>
         </div>
       </main>
     )
@@ -118,11 +136,19 @@ export default function UploadDesignPage() {
         <div className="text-center mb-10">
           <p className="text-[10px] tracking-[0.5em] uppercase text-sage-700 mb-3">The Heartwear Store</p>
           <h1 className="font-playfair text-3xl text-stone-50 mb-2">Upload a Design</h1>
-          <p className="text-stone-500 text-sm">Drop your image below. We&apos;ll put it on a tee for you to approve.</p>
+          <p className="text-stone-500 text-sm">Drop your image — we&apos;ll generate 3 placement options for you to approve.</p>
+        </div>
+
+        {/* Placement preview pills */}
+        <div className="flex gap-2 justify-center mb-8">
+          {['Small chest', 'Full front', 'Back + chest'].map((label) => (
+            <span key={label} className="text-[8px] tracking-[0.3em] uppercase text-stone-600 border border-stone-800 px-3 py-1">
+              {label}
+            </span>
+          ))}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-
           <div
             className={`relative border-2 border-dashed transition-colors cursor-pointer ${
               dragging ? 'border-sage-600 bg-sage-900/10' : 'border-stone-700 hover:border-stone-500'
@@ -136,16 +162,16 @@ export default function UploadDesignPage() {
             {preview ? (
               <div className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="Design preview" className="w-full max-h-80 object-contain bg-stone-900 p-6" />
+                <img src={preview} alt="Design preview" className="w-full max-h-72 object-contain bg-stone-900 p-6" />
                 <div className="absolute bottom-2 right-3 text-[9px] tracking-[0.3em] uppercase text-stone-600">Click to change</div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
                 <svg className="w-10 h-10 text-stone-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p className="text-stone-400 text-sm mb-1">Drop your design here</p>
-                <p className="text-stone-600 text-xs">PNG, JPG or WebP — works best on transparent or white background</p>
+                <p className="text-stone-600 text-xs">PNG, JPG or WebP — transparent background works best</p>
               </div>
             )}
           </div>
@@ -158,7 +184,7 @@ export default function UploadDesignPage() {
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Stitch Heart Tee"
+              placeholder="e.g. Bear Patch Tee"
               className="w-full bg-stone-900 border border-stone-700 text-stone-200 px-4 py-3 text-sm placeholder:text-stone-700 focus:outline-none focus:border-stone-500 transition-colors"
             />
           </div>
@@ -181,11 +207,11 @@ export default function UploadDesignPage() {
             disabled={!file || !secret || stage === 'uploading'}
             className="w-full bg-sage-700 border border-sage-600 text-stone-100 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {stage === 'uploading' ? 'Uploading…' : '✦ Submit Design ✦'}
+            {stage === 'uploading' ? 'Generating 3 options…' : '✦ Generate Placement Options ✦'}
           </button>
 
           <p className="text-center text-[10px] text-stone-700 tracking-wide">
-            Nothing goes live until you approve it.
+            Creates 3 drafts in Printify — nothing goes live until you approve.
           </p>
         </form>
       </div>
