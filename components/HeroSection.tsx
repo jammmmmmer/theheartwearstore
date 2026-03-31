@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { useTranslation } from '@/lib/language-context'
 
@@ -17,83 +17,134 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-stone-950">
 
-      {/* Radial gradient overlay */}
+      {/* Background photo */}
+      <Image
+        src="/hero-bg.png"
+        alt=""
+        fill
+        priority
+        unoptimized
+        className="object-cover object-center"
+        style={{ opacity: 0.45 }}
+      />
+
+      {/* Dark overlay so text stays readable */}
+      <div className="absolute inset-0 bg-stone-950/60 pointer-events-none" />
+
+      {/* Halftone dot grid */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            'radial-gradient(ellipse 70% 50% at 50% 40%, rgba(92,135,92,0.06) 0%, transparent 70%)',
+          backgroundImage: 'radial-gradient(circle, rgba(92,135,92,0.10) 1.5px, transparent 1.5px)',
+          backgroundSize: '28px 28px',
         }}
       />
 
-      {/* Large botanical leaf — top left */}
-      <svg
-        aria-hidden="true"
-        className="absolute -top-16 -left-16 w-[420px] h-[420px] opacity-[0.10] text-sage-700 pointer-events-none select-none"
-        viewBox="0 0 400 400"
-        fill="currentColor"
-      >
-        <path d="M200 20 C200 20 340 80 360 200 C380 320 300 380 200 380 C100 380 20 320 40 200 C60 80 200 20 200 20Z" />
-        <line x1="200" y1="20" x2="200" y2="380" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
-        <line x1="200" y1="160" x2="260" y2="120" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
-        <line x1="200" y1="200" x2="140" y2="160" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
-        <line x1="200" y1="240" x2="270" y2="210" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
-        <line x1="200" y1="280" x2="130" y2="256" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
+      {/* Double decorative border */}
+      <div className="absolute inset-5 sm:inset-8 border border-stone-800 pointer-events-none" />
+      <div className="absolute inset-7 sm:inset-10 border border-stone-800 opacity-30 pointer-events-none" />
+
+      {/* Corner brackets — top-left */}
+      <svg aria-hidden="true" className="absolute top-4 left-4 sm:top-7 sm:left-7 w-7 h-7 text-sage-700 opacity-70 pointer-events-none" viewBox="0 0 28 28" fill="none">
+        <path d="M0 0 L14 0" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M0 0 L0 14" stroke="currentColor" strokeWidth="1.5"/>
       </svg>
 
-      {/* Large botanical leaf — bottom right */}
-      <svg
-        aria-hidden="true"
-        className="absolute -bottom-24 -right-20 w-[520px] h-[520px] opacity-[0.10] text-sage-700 pointer-events-none select-none rotate-[25deg]"
-        viewBox="0 0 400 400"
-        fill="currentColor"
-      >
-        <path d="M200 20 C200 20 340 80 360 200 C380 320 300 380 200 380 C100 380 20 320 40 200 C60 80 200 20 200 20Z" />
+      {/* Corner brackets — top-right */}
+      <svg aria-hidden="true" className="absolute top-4 right-4 sm:top-7 sm:right-7 w-7 h-7 text-sage-700 opacity-70 pointer-events-none" viewBox="0 0 28 28" fill="none">
+        <path d="M28 0 L14 0" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M28 0 L28 14" stroke="currentColor" strokeWidth="1.5"/>
       </svg>
 
-      {/* Small leaf — mid right */}
-      <svg
-        aria-hidden="true"
-        className="absolute top-1/3 right-[8%] w-24 h-24 opacity-[0.10] text-sage-700 pointer-events-none select-none -rotate-12"
-        viewBox="0 0 200 200"
-        fill="currentColor"
-      >
-        <path d="M100 10C100 10 160 40 170 100C180 160 140 190 100 190C60 190 20 160 30 100C40 40 100 10 100 10Z" />
+      {/* Corner brackets — bottom-left */}
+      <svg aria-hidden="true" className="absolute bottom-10 left-4 sm:bottom-10 sm:left-7 w-7 h-7 text-sage-700 opacity-70 pointer-events-none" viewBox="0 0 28 28" fill="none">
+        <path d="M0 28 L14 28" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M0 28 L0 14" stroke="currentColor" strokeWidth="1.5"/>
       </svg>
 
-      {/* Hero content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center w-full">
+      {/* Corner brackets — bottom-right */}
+      <svg aria-hidden="true" className="absolute bottom-10 right-4 sm:bottom-10 sm:right-7 w-7 h-7 text-sage-700 opacity-70 pointer-events-none" viewBox="0 0 28 28" fill="none">
+        <path d="M28 28 L14 28" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M28 28 L28 14" stroke="currentColor" strokeWidth="1.5"/>
+      </svg>
+
+      {/* Rotated stamp badge — upper right */}
+      <div
+        className={`absolute top-16 right-10 sm:top-20 sm:right-20 transition-all duration-700 delay-700 ${
+          mounted ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div className="relative w-[72px] h-[72px] rotate-[14deg]">
+          <svg viewBox="0 0 72 72" className="w-full h-full text-sage-800" fill="none">
+            <circle cx="36" cy="36" r="32" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3"/>
+            <circle cx="36" cy="36" r="24" stroke="currentColor" strokeWidth="1"/>
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-0.5">
+            <span className="text-[6.5px] tracking-[0.3em] uppercase text-sage-700 leading-tight">Made</span>
+            <span className="text-[6.5px] tracking-[0.3em] uppercase text-sage-700 leading-tight">With</span>
+            <span className="text-[6.5px] tracking-[0.3em] uppercase text-sage-700 leading-tight">Love</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 max-w-4xl mx-auto px-10 sm:px-20 text-center w-full">
 
         {/* Eyebrow */}
         <p
-          className={`text-xs uppercase tracking-[0.4em] text-sage-500 mb-8 font-medium transition-all duration-700 delay-100 ${
+          className={`text-[9px] uppercase tracking-[0.55em] text-sage-700 mb-7 flex items-center justify-center gap-3 transition-all duration-700 delay-100 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
         >
+          <span>✦</span>
           {tr.hero_eyebrow}
+          <span>✦</span>
         </p>
 
-        {/* Main headline */}
-        <h1
-          className={`font-playfair leading-[0.88] mb-8 transition-all duration-700 delay-200 ${
+        {/* Headline line 1 — spaced all-caps */}
+        <div
+          className={`transition-all duration-700 delay-200 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
           }`}
-          style={{ fontSize: 'clamp(3.8rem, 13vw, 11rem)' }}
         >
-          <span className="block text-stone-50">{tr.hero_heading_line1}</span>
-          <em className="block italic text-sage-400">{tr.hero_heading_line2}</em>
-        </h1>
+          <span
+            className="block font-playfair text-stone-300 uppercase leading-none"
+            style={{ fontSize: 'clamp(1.5rem, 6.5vw, 5rem)', letterSpacing: '0.22em' }}
+          >
+            {tr.hero_heading_line1}
+          </span>
+        </div>
 
-        {/* Thin rule */}
+        {/* Headline line 2 — giant italic centrepiece */}
         <div
-          className={`w-16 h-px bg-sage-700 mx-auto mb-8 transition-all duration-700 delay-300 ${
-            mounted ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-0'
+          className={`mb-2 transition-all duration-700 delay-[260ms] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
           }`}
-        />
+        >
+          <em
+            className="block font-playfair italic text-sage-400 leading-none"
+            style={{ fontSize: 'clamp(5.5rem, 22vw, 16rem)' }}
+          >
+            {tr.hero_heading_line2}
+          </em>
+        </div>
 
-        {/* Sub-headline */}
+        {/* Ornamental rule */}
+        <div
+          className={`flex items-center justify-center gap-3 mb-7 transition-all duration-700 delay-300 ${
+            mounted ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <div className="h-px bg-stone-800 flex-1 max-w-[80px]" />
+          <span className="text-sage-800 text-xs">✦</span>
+          <span className="text-[8px] tracking-[0.45em] uppercase text-stone-700">The Heartwear Store</span>
+          <span className="text-sage-800 text-xs">✦</span>
+          <div className="h-px bg-stone-800 flex-1 max-w-[80px]" />
+        </div>
+
+        {/* Body copy */}
         <p
-          className={`text-stone-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed mb-10 transition-all duration-700 delay-[400ms] ${
+          className={`text-stone-500 text-sm max-w-sm mx-auto leading-loose mb-10 transition-all duration-700 delay-[400ms] ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
         >
@@ -102,20 +153,19 @@ export default function HeroSection() {
 
         {/* CTAs */}
         <div
-          className={`flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 transition-all duration-700 delay-500 ${
+          className={`flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 transition-all duration-700 delay-500 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
         >
           <Link
             href="/shop"
-            className="group inline-flex items-center gap-2 bg-sage-600 text-white px-9 py-4 text-xs tracking-[0.2em] uppercase hover:bg-sage-500 transition-all duration-300 min-w-[180px] justify-center"
+            className="inline-flex items-center gap-3 bg-sage-800 border border-sage-700 text-stone-200 px-10 py-4 text-[9px] tracking-[0.4em] uppercase hover:bg-sage-700 transition-all duration-300 min-w-[190px] justify-center"
           >
-            {tr.hero_cta_shop}
-            <ArrowRight size={13} className="transition-transform duration-300 group-hover:translate-x-1" />
+            ✦ {tr.hero_cta_shop} ✦
           </Link>
           <Link
             href="/about"
-            className="inline-flex items-center gap-2 border border-stone-700 text-stone-300 px-9 py-4 text-xs tracking-[0.2em] uppercase hover:border-stone-400 hover:text-stone-100 transition-all duration-300 min-w-[180px] justify-center"
+            className="inline-flex items-center gap-2 border border-stone-700 text-stone-600 px-10 py-4 text-[9px] tracking-[0.4em] uppercase hover:border-stone-500 hover:text-stone-300 transition-all duration-300 min-w-[190px] justify-center"
           >
             {tr.hero_cta_story}
           </Link>
@@ -123,29 +173,38 @@ export default function HeroSection() {
 
         {/* Trust signals */}
         <div
-          className={`flex flex-col sm:flex-row gap-3 sm:gap-8 justify-center items-center text-[10px] text-stone-700 tracking-[0.25em] uppercase transition-all duration-700 delay-[600ms] ${
+          className={`flex flex-col sm:flex-row gap-2 sm:gap-6 justify-center items-center text-[8px] text-stone-700 tracking-[0.35em] uppercase transition-all duration-700 delay-[600ms] ${
             mounted ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <span className="flex items-center gap-2">
-            <span className="w-1 h-1 rounded-full bg-sage-800 inline-block" />
-            {tr.hero_trust_1}
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="w-1 h-1 rounded-full bg-sage-800 inline-block" />
-            {tr.hero_trust_2}
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="w-1 h-1 rounded-full bg-sage-800 inline-block" />
-            {tr.hero_trust_3}
-          </span>
+          <span>— {tr.hero_trust_1} —</span>
+          <span>— {tr.hero_trust_2} —</span>
+          <span>— {tr.hero_trust_3} —</span>
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce opacity-30">
-        <div className="w-5 h-8 border border-stone-700 rounded-full flex justify-center pt-1.5">
-          <div className="w-0.5 h-2 bg-stone-600 rounded-full" />
+      {/* Marquee ticker */}
+      <div className="absolute bottom-0 left-0 right-0 h-9 border-t border-stone-800 overflow-hidden flex items-center">
+        <div className="animate-marquee whitespace-nowrap inline-flex">
+          {[0, 1].map((copy) => (
+            <span key={copy} className="inline-flex">
+              {[
+                'The Heartwear Store',
+                'Natural Fashion',
+                'Made To Order',
+                'Wear Your Heart',
+                'Print On Demand',
+                'Ships to Canada & USA',
+              ].map((item, i) => (
+                <span
+                  key={i}
+                  className="text-[8px] tracking-[0.45em] uppercase text-stone-700 mx-10"
+                >
+                  ✦ {item}
+                </span>
+              ))}
+            </span>
+          ))}
         </div>
       </div>
     </section>
