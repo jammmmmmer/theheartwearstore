@@ -34,9 +34,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || 'https://www.theheartwearstore.ca'
   ),
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
     siteName: 'The Heartwear Store',
     type: 'website',
+    images: ['/logo.png'],
   },
 }
 

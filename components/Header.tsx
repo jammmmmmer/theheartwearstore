@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingBag, Leaf, Menu, X } from 'lucide-react'
+import Image from 'next/image'
+import { ShoppingBag, Menu, X } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { useState } from 'react'
 import { useTranslation } from '@/lib/language-context'
@@ -20,17 +21,17 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 group"
+            className="flex items-center group"
             aria-label="The Heartwear Store — home"
           >
-            <Leaf
-              size={18}
-              className="text-sage-500 group-hover:text-sage-400 transition-colors"
-              strokeWidth={1.5}
+            <Image
+              src="/logo.png"
+              alt="The Heartwear Store"
+              width={160}
+              height={60}
+              className="h-10 w-auto brightness-0 invert group-hover:opacity-80 transition-opacity"
+              priority
             />
-            <span className="font-playfair text-lg text-stone-50 tracking-wide">
-              The Heartwear Store
-            </span>
           </Link>
 
           {/* Desktop Nav */}
