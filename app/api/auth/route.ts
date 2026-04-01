@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   const credentials = process.env.UPLOAD_CREDENTIALS ?? ''
   const users: Record<string, string> = {}
   for (const pair of credentials.split(',')) {
-    const [u, p] = pair.split(':')
+    const [u, p] = pair.split('|')
     if (u && p) users[u.trim()] = p.trim()
   }
 
