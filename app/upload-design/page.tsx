@@ -17,9 +17,6 @@ export default function UploadDesignPage() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [title, setTitle] = useState('')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [secret, setSecret] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [dragging, setDragging] = useState(false)
   const [options, setOptions] = useState<PlacementOption[]>([])
@@ -106,16 +103,13 @@ export default function UploadDesignPage() {
     setErrorMsg('')
 
     try {
-      // Step 0: authenticate and get secret
-      const authRes = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      })
-      const authData = await authRes.json()
-      if (!authRes.ok) throw new Error('Invalid username or password')
-      setSecret(authData.secret)
-      const resolvedSecret = authData.secret
+      // Read secret from session cookie
+      const resolvedSecret = document.cookie
+        .split('; ')
+        .find(r => r.startsWith('hs_session='))
+        ?.split('=')[1] ?? ''
+
+      if (!resolvedSecret) throw new Error('Session expired — please sign in again')
 
       // Step 1: upload image to Printify, get imageId
       const compressed = await compressImage(file)
@@ -159,7 +153,7 @@ export default function UploadDesignPage() {
 
   const reset = () => {
     setStage('form'); setFile(null); setPreview(null)
-    setTitle(''); setOptions([]); setCardStates({}); setSelectedKey(null); setSecret('')
+    setTitle(''); setOptions([]); setCardStates({}); setSelectedKey(null)
   }
 
   if (stage === 'done') {
@@ -313,33 +307,11 @@ export default function UploadDesignPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              required
-              className="w-full bg-stone-900 border border-stone-700 text-stone-200 px-4 py-3 text-sm placeholder:text-stone-700 focus:outline-none focus:border-stone-500 transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              className="w-full bg-stone-900 border border-stone-700 text-stone-200 px-4 py-3 text-sm placeholder:text-stone-700 focus:outline-none focus:border-stone-500 transition-colors"
-            />
-          </div>
-
           {stage === 'error' && <p className="text-red-400 text-xs tracking-wide">{errorMsg}</p>}
 
           <button
             type="submit"
-            disabled={!file || !username || !password || stage === 'uploading'}
+            disabled={!file || stage === 'uploading'}
             className="w-full bg-sage-700 border border-sage-600 text-stone-100 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {stage === 'uploading' ? 'Generating 3 options…' : '✦ Generate Placement Options ✦'}
