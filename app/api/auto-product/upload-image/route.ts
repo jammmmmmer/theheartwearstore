@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { uploadImageToPrintify } from '@/lib/printify'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {

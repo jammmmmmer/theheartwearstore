@@ -11,6 +11,7 @@ import { createDraftProduct } from '@/lib/printify'
 import { signToken } from '@/lib/approval-token'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const BLUEPRINT_ID = 145
 const PRINT_PROVIDER_ID = 6
