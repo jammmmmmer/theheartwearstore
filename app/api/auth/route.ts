@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!username || !password || users[username] !== password) {
-    return NextResponse.json({ error: 'Invalid credentials', debug: credentials.slice(0, 30) }, { status: 401 })
+    return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
   }
 
   return NextResponse.json({ secret: process.env.SYNC_SECRET })
