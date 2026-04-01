@@ -20,3 +20,23 @@
   for = "/api/auto-product/*"
   [headers.values]
     Cache-Control = "no-store"
+
+[[headers]]
+  for = "/api/products"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/shop"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/shop/*"
+  [headers.values]
+    Cache-Control = "no-store"
