@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getProduct } from '@/lib/printify'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 // Map Printify event/status strings to our internal order status
 function mapPrintifyStatus(
@@ -34,6 +36,56 @@ export async function POST(request: NextRequest) {
     }
 
     const eventType = body.type
+
+    // Handle product:published events
+    if (eventType === 'product:published') {
+      const productId = body.resource?.id
+      if (!productId) {
+        console.warn('product:published webhook received without product ID:', body)
+        return NextResponse.json({ received: true })
+      }
+
+      const shopId = process.env.PRINTIFY_SHOP_ID!
+
+      const product = await getProduct(shopId, String(productId)) as {
+        id: string
+        title: string
+        description: string
+        tags: string[]
+        options: unknown[]
+        variants: { price: number; is_enabled: boolean }[]
+        images: unknown[]
+      }
+
+      const enabledVariants = product.variants.filter(v => v.is_enabled)
+      const priceFrom = enabledVariants.length
+        ? Math.min(...enabledVariants.map(v => v.price))
+        : product.variants[0]?.price || 0
+
+      const { error: upsertError } = await supabaseAdmin()
+        .from('products')
+        .upsert({
+          printify_id: product.id,
+          title: product.title,
+          description: product.description || '',
+          tags: product.tags || [],
+          options: product.options || [],
+          variants: product.variants || [],
+          images: product.images || [],
+          price_from: priceFrom,
+          is_enabled: true,
+        }, { onConflict: 'printify_id' })
+
+      if (upsertError) {
+        console.error(`[webhook] Failed to upsert product ${productId}:`, upsertError)
+      } else {
+        console.log(`[webhook] product:published — upserted product ${productId} to Supabase`)
+      }
+
+      return NextResponse.json({ received: true })
+    }
+
+    // Handle order events
     const printifyOrderId =
       body.resource?.id ??
       body.resource?.data?.id

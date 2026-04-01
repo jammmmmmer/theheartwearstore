@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { createDraftProduct } from '@/lib/printify'
+import { createDraftProduct, publishProduct } from '@/lib/printify'
 import { signToken } from '@/lib/approval-token'
 
 export const runtime = 'nodejs'
@@ -123,6 +123,13 @@ export async function POST(request: NextRequest) {
     const mockupUrl = product.images?.find((img: { is_default: boolean }) => img.is_default)?.src
       || product.images?.[0]?.src
       || ''
+
+    // Publish to Printify portal (custom_integration — won't archive)
+    try {
+      await publishProduct(shopId, printifyId)
+    } catch (e) {
+      console.warn('[upload] publishProduct failed (non-fatal):', e)
+    }
 
     const { data: pending, error: dbError } = await supabaseAdmin()
       .from('pending_products')

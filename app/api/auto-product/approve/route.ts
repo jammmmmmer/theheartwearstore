@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/approval-token'
-import { getProduct } from '@/lib/printify'
+import { getProduct, publishProduct } from '@/lib/printify'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
@@ -81,6 +81,14 @@ export async function GET(request: NextRequest) {
       }, { onConflict: 'printify_id' })
 
     if (upsertError) throw new Error(`Supabase upsert failed: ${upsertError.message}`)
+
+    // 4b. Publish on Printify (custom_integration shop — won't archive)
+    try {
+      await publishProduct(shopId, payload.printifyId)
+    } catch (publishErr) {
+      // Non-fatal — product is already in Supabase, just log
+      console.warn('[approve] publishProduct failed (non-fatal):', publishErr)
+    }
 
     // 5. Mark as approved
     await supabaseAdmin()
