@@ -224,7 +224,13 @@ export default function UploadDesignPage() {
             })}
           </div>
 
-          <div className="text-center">
+          <div className="text-center flex flex-col items-center gap-4">
+            <a
+              href="/shop"
+              className="inline-block bg-sage-700 border border-sage-600 text-stone-100 px-10 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors"
+            >
+              OK — Go to Shop
+            </a>
             <button onClick={reset} className="text-xs tracking-[0.3em] uppercase text-stone-700 hover:text-stone-500 transition-colors">
               Upload another design
             </button>
