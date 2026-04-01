@@ -20,7 +20,9 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ products: data ?? [] })
+    return NextResponse.json({ products: data ?? [] }, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
   } catch (err) {
     console.error('Unexpected error fetching products:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
