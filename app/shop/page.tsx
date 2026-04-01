@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { Product } from '@/types'
 import ShopPageClient from '@/components/ShopPageClient'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 }
 
 async function getAllProducts(): Promise<Product[]> {
+  noStore()
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
