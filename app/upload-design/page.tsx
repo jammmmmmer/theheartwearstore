@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 type Stage = 'form' | 'uploading' | 'done' | 'error'
 
@@ -13,6 +14,7 @@ interface PlacementOption {
 }
 
 export default function UploadDesignPage() {
+  const router = useRouter()
   const [stage, setStage] = useState<Stage>('form')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -22,7 +24,18 @@ export default function UploadDesignPage() {
   const [options, setOptions] = useState<PlacementOption[]>([])
   const [cardStates, setCardStates] = useState<Record<string, 'idle' | 'loading' | 'approved' | 'rejected'>>({})
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [loggedInUser, setLoggedInUser] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const user = document.cookie.split('; ').find(r => r.startsWith('hs_user='))?.split('=')[1] ?? ''
+    setLoggedInUser(decodeURIComponent(user))
+  }, [])
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+  }
 
   const handleApprove = async (opt: PlacementOption) => {
     setCardStates(s => ({ ...s, [opt.key]: 'loading' }))
@@ -250,6 +263,20 @@ export default function UploadDesignPage() {
   return (
     <main className="min-h-screen bg-stone-950 flex items-center justify-center px-4 py-16">
       <div className="max-w-lg w-full">
+
+        {loggedInUser && (
+          <div className="flex justify-end items-center gap-3 mb-8">
+            <span className="text-[10px] tracking-[0.3em] uppercase text-stone-500">
+              Signed in as <span className="text-stone-300">{loggedInUser}</span>
+            </span>
+            <button
+              onClick={handleLogout}
+              className="text-[9px] tracking-[0.3em] uppercase text-stone-600 hover:text-stone-400 border border-stone-800 hover:border-stone-600 px-3 py-1.5 transition-colors"
+            >
+              Log out
+            </button>
+          </div>
+        )}
 
         <div className="text-center mb-10">
           <p className="text-[10px] tracking-[0.5em] uppercase text-sage-700 mb-3">The Heartwear Store</p>

@@ -14,12 +14,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
   }
 
+  const maxAge = 60 * 60 * 24 * 7 // 7 days
   const res = NextResponse.json({ ok: true })
   res.cookies.set('hs_session', process.env.SYNC_SECRET ?? '', {
-    httpOnly: false,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    httpOnly: false, sameSite: 'lax', path: '/', maxAge,
+  })
+  res.cookies.set('hs_user', username, {
+    httpOnly: false, sameSite: 'lax', path: '/', maxAge,
   })
   return res
 }
