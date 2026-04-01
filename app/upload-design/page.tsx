@@ -34,11 +34,6 @@ export default function UploadDesignPage() {
         throw new Error('Approve did not complete successfully')
       }
       setCardStates(s => ({ ...s, [opt.key]: 'approved' }))
-      // Trigger sync so product appears in store immediately
-      fetch('/api/sync-products', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${secret}` },
-      }).catch(() => {})
     } catch {
       setCardStates(s => ({ ...s, [opt.key]: 'idle' }))
       alert('Approve failed — try again')
