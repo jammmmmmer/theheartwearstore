@@ -20,9 +20,9 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link
-            href="/"
+            href="/upload-design"
             className="flex items-center group"
-            aria-label="The Heartwear Store — home"
+            aria-label="Upload a design"
           >
             <Image
               src="/logo.png"
