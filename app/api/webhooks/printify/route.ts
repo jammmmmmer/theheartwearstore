@@ -5,6 +5,11 @@ import { getProduct } from '@/lib/printify'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+// Printify validates webhooks with a GET request
+export async function GET() {
+  return NextResponse.json({ ok: true })
+}
+
 // Map Printify event/status strings to our internal order status
 function mapPrintifyStatus(
   eventType: string

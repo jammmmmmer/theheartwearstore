@@ -80,7 +80,7 @@ No text, no words, no letters. Pure visual art only. High contrast, bold lines.`
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseModalities: ['IMAGE'], imagenConfig: { aspectRatio: '1:1' } },
+        generationConfig: { responseModalities: ['IMAGE'] },
       }),
     }
   )
