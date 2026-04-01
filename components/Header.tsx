@@ -20,7 +20,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link
-            href="/upload-design"
+            href="/login"
             className="flex items-center group"
             aria-label="Upload a design"
           >
