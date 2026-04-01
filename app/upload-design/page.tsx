@@ -17,6 +17,8 @@ export default function UploadDesignPage() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [title, setTitle] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [secret, setSecret] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [dragging, setDragging] = useState(false)
@@ -104,11 +106,22 @@ export default function UploadDesignPage() {
     setErrorMsg('')
 
     try {
+      // Step 0: authenticate and get secret
+      const authRes = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      const authData = await authRes.json()
+      if (!authRes.ok) throw new Error('Invalid username or password')
+      setSecret(authData.secret)
+      const resolvedSecret = authData.secret
+
       // Step 1: upload image to Printify, get imageId
       const compressed = await compressImage(file)
       const formData = new FormData()
       formData.append('image', compressed)
-      formData.append('secret', secret)
+      formData.append('secret', resolvedSecret)
       if (title.trim()) formData.append('title', title.trim())
 
       const imgRes = await fetch('/api/auto-product/upload-image', { method: 'POST', body: formData })
@@ -126,7 +139,7 @@ export default function UploadDesignPage() {
           const res = await fetch('/api/auto-product/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ secret, imageId, title: resolvedTitle, placementKey }),
+            body: JSON.stringify({ secret: resolvedSecret, imageId, title: resolvedTitle, placementKey }),
           })
           const text = await res.text()
           let data: PlacementOption & { ok?: boolean; error?: string }
@@ -146,7 +159,7 @@ export default function UploadDesignPage() {
 
   const reset = () => {
     setStage('form'); setFile(null); setPreview(null)
-    setTitle(''); setOptions([]); setCardStates({}); setSelectedKey(null)
+    setTitle(''); setOptions([]); setCardStates({}); setSelectedKey(null); setSecret('')
   }
 
   if (stage === 'done') {
@@ -301,11 +314,22 @@ export default function UploadDesignPage() {
           </div>
 
           <div>
+            <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              className="w-full bg-stone-900 border border-stone-700 text-stone-200 px-4 py-3 text-sm placeholder:text-stone-700 focus:outline-none focus:border-stone-500 transition-colors"
+            />
+          </div>
+
+          <div>
             <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">Password</label>
             <input
               type="password"
-              value={secret}
-              onChange={e => setSecret(e.target.value)}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               required
               className="w-full bg-stone-900 border border-stone-700 text-stone-200 px-4 py-3 text-sm placeholder:text-stone-700 focus:outline-none focus:border-stone-500 transition-colors"
             />
@@ -315,7 +339,7 @@ export default function UploadDesignPage() {
 
           <button
             type="submit"
-            disabled={!file || !secret || stage === 'uploading'}
+            disabled={!file || !username || !password || stage === 'uploading'}
             className="w-full bg-sage-700 border border-sage-600 text-stone-100 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-sage-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {stage === 'uploading' ? 'Generating 3 options…' : '✦ Generate Placement Options ✦'}
