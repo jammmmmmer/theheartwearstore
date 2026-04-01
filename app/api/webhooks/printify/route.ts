@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     const eventType = body.type
 
-    // Handle product:published events
-    if (eventType === 'product:published') {
+    // Handle product:created events (custom_integration shops fire product:created, not product:published)
+    if (eventType === 'product:created' || eventType === 'product:published') {
       const productId = body.resource?.id
       if (!productId) {
         console.warn('product:published webhook received without product ID:', body)
