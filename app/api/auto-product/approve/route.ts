@@ -12,10 +12,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/approval-token'
-import { publishProduct, getProduct } from '@/lib/printify'
+import { getProduct } from '@/lib/printify'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')
@@ -48,10 +49,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${siteUrl}/auto-product/result?status=already-used`)
     }
 
-    // 3. Publish on Printify
-    await publishProduct(shopId, payload.printifyId)
-
-    // 4. Fetch full product from Printify and sync to Supabase
+    // 3. Fetch full product from Printify and sync to Supabase
+    //    (skipping publishProduct — Shopify channel type would archive the product)
     const product = await getProduct(shopId, payload.printifyId) as {
       id: string
       title: string
