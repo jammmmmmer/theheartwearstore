@@ -1,0 +1,33 @@
+services:
+  # ── Development mode (hot reload, source mounted as volume) ──────────────────
+  app-dev:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "3002:3000"
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+      - /app/node_modules    # keep container's node_modules, don't overwrite with host
+      - /app/.next           # keep build cache inside container
+    profiles:
+      - dev
+
+  # ── Production mode (compiled, optimised build) ──────────────────────────────
+  app-prod:
+    build:
+      context: .
+      target: runner
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    profiles:
+      - prod

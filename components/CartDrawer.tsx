@@ -4,13 +4,11 @@ import { useCartStore } from '@/lib/cart-store'
 import { formatPrice } from '@/lib/utils'
 import { X, Trash2, ShoppingBag } from 'lucide-react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useState } from 'react'
 import { useTranslation } from '@/lib/language-context'
 
 export default function CartDrawer() {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, totalPrice, clearCart } =
-    useCartStore()
+  const { items, isOpen, closeCart, removeItem, updateQuantity, totalPrice, clearCart } = useCartStore()
   const { tr } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,149 +19,136 @@ export default function CartDrawer() {
     if (items.length === 0) return
     setIsLoading(true)
     setError(null)
-
     try {
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
       })
-
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error((data as { error?: string }).error || 'Failed to create checkout session')
       }
-
       const { url } = await res.json() as { url: string }
-      if (url) {
-        window.location.href = url
-      }
+      if (url) window.location.href = url
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setIsLoading(false)
     }
   }
 
+  const drawerStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    height: '100%',
+    width: '100%',
+    maxWidth: '420px',
+    background: 'var(--hw-off)',
+    borderLeft: '1px solid var(--hw-border)',
+    zIndex: 50,
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 0 60px rgba(0,0,0,0.6)',
+    transition: 'transform 0.3s ease-out',
+    transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+  }
+
   return (
     <>
-      {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-stone-950/80 z-40 animate-fade-in"
+          className="fixed inset-0 z-40 animate-fade-in"
+          style={{ background: 'rgba(10,10,10,0.75)' }}
           onClick={closeCart}
           aria-hidden="true"
         />
       )}
 
-      {/* Drawer */}
-      <aside
-        className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-stone-950 border-l border-stone-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        aria-label={tr.cart_title}
-        aria-modal="true"
-        role="dialog"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-stone-800">
+      <aside style={drawerStyle} aria-label={tr.cart_title} aria-modal="true" role="dialog">
+
+        <div className="flex items-center justify-between px-6 py-5 border-b" style={{ borderColor: 'var(--hw-border)' }}>
           <div className="flex items-center gap-2">
-            <ShoppingBag size={18} strokeWidth={1.5} className="text-stone-400" />
-            <h2 className="font-playfair text-xl text-stone-50">{tr.cart_title}</h2>
+            <ShoppingBag size={16} strokeWidth={1.5} style={{ color: 'var(--hw-muted)' }} />
+            <h2 style={{ fontFamily: 'var(--font-dm-serif), Georgia, serif', fontSize: '1.15rem', color: 'var(--hw-white)' }}>
+              {tr.cart_title}
+            </h2>
           </div>
           <button
             onClick={closeCart}
-            className="p-1.5 text-stone-500 hover:text-stone-50 transition-colors rounded"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--hw-muted)', padding: '4px' }}
             aria-label="Close cart"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Items */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-              <ShoppingBag size={40} strokeWidth={1} className="text-stone-700" />
-              <p className="text-stone-500 text-sm">{tr.cart_empty}</p>
-              <button
-                onClick={closeCart}
-                className="btn-outline text-xs"
-              >
-                {tr.cart_continue}
-              </button>
+            <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
+              <ShoppingBag size={40} strokeWidth={1} style={{ color: 'var(--hw-border)' }} />
+              <p style={{ fontSize: '0.85rem', color: 'var(--hw-muted)' }}>{tr.cart_empty}</p>
+              <button onClick={closeCart} className="btn-outline text-xs">{tr.cart_continue}</button>
             </div>
           ) : (
-            <ul className="divide-y divide-stone-800">
+            <ul style={{ borderTop: '1px solid var(--hw-border)' }}>
               {items.map((item) => (
                 <li
                   key={`${item.product_id}-${item.variant_id}`}
-                  className="py-5 flex gap-4"
+                  className="flex gap-4 py-5"
+                  style={{ borderBottom: '1px solid var(--hw-border)' }}
                 >
-                  {/* Image */}
-                  <div className="w-20 h-20 bg-stone-900 border border-stone-800 flex-shrink-0 relative overflow-hidden rounded-sm">
+                  <div
+                    className="relative overflow-hidden flex-shrink-0"
+                    style={{ width: '72px', height: '72px', background: 'var(--hw-surface)', border: '1px solid var(--hw-border)' }}
+                  >
                     {item.image ? (
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        sizes="80px"
-                        className="object-cover"
-                      />
+                      <Image src={item.image} alt={item.title} fill sizes="72px" className="object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-stone-800 flex items-center justify-center">
-                        <ShoppingBag size={16} className="text-stone-600" strokeWidth={1} />
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag size={16} strokeWidth={1} style={{ color: 'var(--hw-muted)' }} />
                       </div>
                     )}
                   </div>
 
-                  {/* Details */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-stone-100 text-sm font-medium leading-snug truncate">
+                    <p style={{ fontSize: '0.88rem', color: 'var(--hw-white)', lineHeight: 1.3, marginBottom: '2px' }} className="truncate">
                       {item.title}
                     </p>
-                    <p className="text-stone-500 text-xs mt-0.5">{item.variant_title}</p>
-                    <p className="text-stone-300 text-sm mt-1">
+                    <p style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.6rem', letterSpacing: '0.1em', color: 'var(--hw-muted)', marginBottom: '6px' }}>
+                      {item.variant_title}
+                    </p>
+                    <p style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.72rem', color: 'var(--hw-accent2)' }}>
                       {formatPrice(item.price)}
                     </p>
 
-                    {/* Quantity + Remove */}
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center border border-stone-700 bg-stone-800">
+                    <div className="flex items-center gap-3 mt-3">
+                      <div className="flex items-center" style={{ border: '1px solid var(--hw-border)', background: 'var(--hw-surface)' }}>
                         <button
-                          onClick={() =>
-                            updateQuantity(item.product_id, item.variant_id, item.quantity - 1)
-                          }
-                          className="px-2.5 py-1 text-stone-300 hover:text-stone-50 hover:bg-stone-700 transition-colors text-sm"
+                          onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity - 1)}
+                          style={{ background: 'none', border: 'none', borderRight: '1px solid var(--hw-border)', cursor: 'pointer', padding: '4px 10px', color: 'var(--hw-mid)', fontFamily: 'var(--font-space-mono)', fontSize: '0.75rem' }}
                           aria-label="Decrease quantity"
-                        >
-                          −
-                        </button>
-                        <span className="px-3 py-1 text-sm text-stone-300 border-x border-stone-700 min-w-[2rem] text-center">
+                        >−</button>
+                        <span style={{ padding: '4px 12px', fontFamily: 'var(--font-space-mono)', fontSize: '0.72rem', color: 'var(--hw-white)', minWidth: '32px', textAlign: 'center' }}>
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() =>
-                            updateQuantity(item.product_id, item.variant_id, item.quantity + 1)
-                          }
-                          className="px-2.5 py-1 text-stone-300 hover:text-stone-50 hover:bg-stone-700 transition-colors text-sm"
+                          onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity + 1)}
+                          style={{ background: 'none', border: 'none', borderLeft: '1px solid var(--hw-border)', cursor: 'pointer', padding: '4px 10px', color: 'var(--hw-mid)', fontFamily: 'var(--font-space-mono)', fontSize: '0.75rem' }}
                           aria-label="Increase quantity"
-                        >
-                          +
-                        </button>
+                        >+</button>
                       </div>
-
                       <button
                         onClick={() => removeItem(item.product_id, item.variant_id)}
-                        className="p-1 text-stone-600 hover:text-red-400 transition-colors"
-                        aria-label={`Remove ${item.title} from cart`}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--hw-muted)', padding: '4px' }}
+                        aria-label={`Remove ${item.title}`}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Line total */}
-                  <p className="text-stone-300 text-sm font-medium flex-shrink-0">
+                  <p style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.72rem', color: 'var(--hw-accent2)', flexShrink: 0, paddingTop: '2px' }}>
                     {formatPrice(item.price * item.quantity)}
                   </p>
                 </li>
@@ -172,55 +157,45 @@ export default function CartDrawer() {
           )}
         </div>
 
-        {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-stone-800 px-6 py-5 space-y-4">
+          <div className="border-t px-6 py-5 space-y-4" style={{ borderColor: 'var(--hw-border)' }}>
             {error && (
-              <p className="text-red-400 text-xs bg-red-950/40 border border-red-900 px-3 py-2 rounded">
+              <p style={{ fontSize: '0.75rem', color: '#f87171', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', padding: '8px 12px' }}>
                 {error}
               </p>
             )}
-
             <div className="flex items-center justify-between">
-              <span className="text-stone-400 text-sm">{tr.cart_subtotal}</span>
-              <span className="text-stone-50 font-medium">{formatPrice(subtotal)}</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--hw-muted)' }}>{tr.cart_subtotal}</span>
+              <span style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.85rem', color: 'var(--hw-white)' }}>{formatPrice(subtotal)}</span>
             </div>
-            <p className="text-xs text-stone-600">
+            <p style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.58rem', letterSpacing: '0.08em', color: 'var(--hw-muted)' }}>
               {tr.cart_shipping_note}
             </p>
-
             <button
               onClick={handleCheckout}
               disabled={isLoading}
-              className="w-full bg-sage-600 text-white hover:bg-sage-500 flex items-center justify-center gap-2 px-6 py-3 text-sm tracking-widest uppercase transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-primary w-full justify-center"
+              style={{ opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
             >
               {isLoading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span style={{ width: '14px', height: '14px', border: '2px solid rgba(10,10,10,0.3)', borderTopColor: 'var(--hw-black)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
                   {tr.product_redirecting}
                 </>
-              ) : (
-                tr.cart_checkout
-              )}
+              ) : tr.cart_checkout}
             </button>
-
-            <div className="flex items-center justify-between text-xs">
-              <button
-                onClick={closeCart}
-                className="text-stone-500 hover:text-stone-300 transition-colors underline underline-offset-2"
-              >
+            <div className="flex items-center justify-between">
+              <button onClick={closeCart} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-space-mono)', fontSize: '0.58rem', letterSpacing: '0.1em', color: 'var(--hw-muted)', textDecoration: 'underline' }}>
                 {tr.cart_continue}
               </button>
-              <button
-                onClick={clearCart}
-                className="text-stone-600 hover:text-stone-400 transition-colors"
-              >
+              <button onClick={clearCart} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-space-mono)', fontSize: '0.58rem', letterSpacing: '0.1em', color: 'var(--hw-border)' }}>
                 {tr.cart_clear}
               </button>
             </div>
           </div>
         )}
       </aside>
+
     </>
   )
 }

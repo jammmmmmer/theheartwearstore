@@ -2,21 +2,131 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS custom properties ──────────────────────────────────────────────── */
+:root {
+  --hw-black:   #0a0a0a;
+  --hw-off:     #111111;
+  --hw-surface: #161616;
+  --hw-border:  #222222;
+  --hw-muted:   #555555;
+  --hw-mid:     #888888;
+  --hw-light:   #cccccc;
+  --hw-white:   #f5f2ee;
+  --hw-accent:  #c9402a;
+  --hw-accent2: #e8d5b0;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
 @layer base {
-  body {
-    @apply bg-stone-950 text-stone-50 antialiased;
-    scrollbar-color: #44403c #0c0a09;
+  html {
+    scroll-behavior: smooth;
   }
+
+  body {
+    @apply bg-hw-black text-hw-white antialiased;
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    scrollbar-color: #333 #0a0a0a;
+  }
+
+  /* Film-grain noise overlay — applied via pseudo on body */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
   h1, h2, h3 {
-    @apply font-playfair;
+    font-family: var(--font-dm-serif), Georgia, serif;
   }
 }
 
+/* ── Components ─────────────────────────────────────────────────────────── */
 @layer components {
+
+  /* Primary button — white fill, black text */
   .btn-primary {
-    @apply bg-sage-600 text-white px-6 py-3 text-sm tracking-widest uppercase hover:bg-sage-500 transition-colors duration-200;
+    @apply inline-flex items-center justify-center gap-2
+           bg-hw-white text-hw-black
+           px-8 py-3.5
+           text-[10px] tracking-[0.2em] uppercase
+           font-mono
+           transition-colors duration-200;
   }
+  .btn-primary:hover {
+    background-color: var(--hw-accent2);
+  }
+
+  /* Ghost / outline button */
   .btn-outline {
-    @apply border border-stone-600 text-stone-300 px-6 py-3 text-sm tracking-widest uppercase hover:border-stone-300 hover:text-stone-50 transition-colors duration-200;
+    @apply inline-flex items-center justify-center gap-2
+           border border-hw-border text-hw-mid
+           px-8 py-3.5
+           text-[10px] tracking-[0.2em] uppercase
+           font-mono
+           transition-colors duration-200;
   }
+  .btn-outline:hover {
+    @apply border-hw-mid text-hw-white;
+  }
+
+  /* Section eyebrow label */
+  .hw-eyebrow {
+    @apply flex items-center gap-3
+           text-[10px] tracking-[0.28em] uppercase
+           font-mono text-hw-accent;
+  }
+  .hw-eyebrow::before {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: var(--hw-accent);
+  }
+
+  /* Heart-a — the ♥ that replaces the 'a' in Heartwear */
+  .heart-a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    top: -0.08em;
+    margin: 0 0.01em;
+  }
+  .heart-a svg {
+    width: 0.65em;
+    height: 0.65em;
+    fill: var(--hw-accent);
+  }
+}
+
+/* ── Global keyframes ───────────────────────────────────────────────────── */
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(1); }
+  50%       { opacity: 1;   transform: scaleY(0.6); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Utilities ──────────────────────────────────────────────────────────── */
+@layer utilities {
+  .font-serif   { font-family: var(--font-dm-serif), Georgia, serif; }
+  .font-mono    { font-family: var(--font-space-mono), monospace; }
+  .font-sans    { font-family: var(--font-dm-sans), system-ui, sans-serif; }
+  /* Legacy aliases */
+  .font-playfair { font-family: var(--font-dm-serif), Georgia, serif; }
+  .font-inter    { font-family: var(--font-dm-sans), system-ui, sans-serif; }
+
+  .text-hw-accent  { color: var(--hw-accent); }
+  .text-hw-accent2 { color: var(--hw-accent2); }
+  .bg-hw-black     { background-color: var(--hw-black); }
+  .bg-hw-surface   { background-color: var(--hw-surface); }
+  .border-hw-border { border-color: var(--hw-border); }
+  .text-hw-muted   { color: var(--hw-muted); }
+  .text-hw-mid     { color: var(--hw-mid); }
+  .text-hw-white   { color: var(--hw-white); }
 }

@@ -1,12 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { ShoppingBag, Menu, X } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { useState } from 'react'
 import { useTranslation } from '@/lib/language-context'
 import LanguageToggle from '@/components/LanguageToggle'
+import { HeartA } from '@/components/Logo'
 
 export default function Header() {
   const { totalItems, openCart } = useCartStore()
@@ -15,71 +15,86 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-40 bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
+    <header
+      className="sticky top-0 z-40 backdrop-blur-sm border-b"
+      style={{
+        background: 'rgba(10,10,10,0.92)',
+        borderColor: 'var(--hw-border)',
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link
-            href="/login"
-            className="flex items-center group"
-            aria-label="Upload a design"
-          >
-            <Image
-              src="/logo.png"
-              alt="The Heartwear Store"
-              width={48}
-              height={48}
-              className="h-12 w-12 group-hover:opacity-80 transition-opacity"
-            />
+
+          {/* Wordmark */}
+          <Link href="/" className="flex items-center" aria-label="The Heartwear Store — Home">
+            <span
+              style={{
+                fontFamily: 'var(--font-dm-serif), Georgia, serif',
+                fontSize: '1.05rem',
+                letterSpacing: '0.02em',
+                color: 'var(--hw-white)',
+              }}
+            >
+              The He<HeartA />rtwear Store
+            </span>
           </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link
-              href="/"
-              className="text-sm text-stone-400 hover:text-stone-50 tracking-wide transition-colors"
-            >
-              {tr.nav_home}
-            </Link>
-            <Link
-              href="/shop"
-              className="text-sm text-stone-400 hover:text-stone-50 tracking-wide transition-colors"
-            >
-              {tr.nav_shop}
-            </Link>
-            <Link
-              href="/about"
-              className="text-sm text-stone-400 hover:text-stone-50 tracking-wide transition-colors"
-            >
-              {tr.nav_about}
-            </Link>
+            {[
+              { href: '/',      label: tr.nav_home },
+              { href: '/shop',  label: tr.nav_shop },
+              { href: '/about', label: tr.nav_about },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  fontFamily: 'var(--font-space-mono), monospace',
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: 'var(--hw-muted)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--hw-white)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--hw-muted)')}
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
-            {/* Language toggle */}
+          <div className="flex items-center gap-4">
             <div className="hidden md:block">
               <LanguageToggle />
             </div>
 
-            {/* Cart button */}
+            {/* Cart */}
             <button
               onClick={openCart}
-              className="relative p-2 text-stone-50 hover:text-stone-200 transition-colors"
+              className="relative flex items-center gap-2 transition-colors"
+              style={{ color: 'var(--hw-mid)', background: 'none', border: 'none', cursor: 'pointer' }}
               aria-label={`${tr.nav_open_cart} — ${itemCount} ${itemCount !== 1 ? tr.nav_items : tr.nav_item}`}
             >
-              <ShoppingBag size={22} strokeWidth={1.5} />
+              <ShoppingBag size={20} strokeWidth={1.5} />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-sage-600 text-white text-[10px] font-medium rounded-full flex items-center justify-center leading-none">
+                <span
+                  className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-mono"
+                  style={{ background: 'var(--hw-accent)', color: 'var(--hw-white)' }}
+                >
                   {itemCount > 99 ? '99+' : itemCount}
                 </span>
               )}
             </button>
 
-            {/* Mobile menu toggle */}
+            {/* Mobile hamburger */}
             <button
-              onClick={() => setMobileMenuOpen((o) => !o)}
-              className="md:hidden p-2 text-stone-400 hover:text-stone-50 transition-colors"
+              onClick={() => setMobileMenuOpen(o => !o)}
+              className="md:hidden p-1 transition-colors"
+              style={{ color: 'var(--hw-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -90,29 +105,32 @@ export default function Header() {
 
       {/* Mobile Nav */}
       {mobileMenuOpen && (
-        <nav className="md:hidden bg-stone-950 border-t border-stone-800 px-4 py-4 flex flex-col gap-4 animate-fade-in">
-          <Link
-            href="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-sm text-stone-400 hover:text-stone-50 tracking-wide py-1"
-          >
-            {tr.nav_home}
-          </Link>
-          <Link
-            href="/shop"
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-sm text-stone-400 hover:text-stone-50 tracking-wide py-1"
-          >
-            {tr.nav_shop}
-          </Link>
-          <Link
-            href="/about"
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-sm text-stone-400 hover:text-stone-50 tracking-wide py-1"
-          >
-            {tr.nav_about}
-          </Link>
-          <div className="pt-1 border-t border-stone-800">
+        <nav
+          className="md:hidden border-t px-6 py-6 flex flex-col gap-5 animate-fade-in"
+          style={{ background: 'var(--hw-off)', borderColor: 'var(--hw-border)' }}
+        >
+          {[
+            { href: '/',      label: tr.nav_home },
+            { href: '/shop',  label: tr.nav_shop },
+            { href: '/about', label: tr.nav_about },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                fontFamily: 'var(--font-space-mono), monospace',
+                fontSize: '0.65rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--hw-mid)',
+                textDecoration: 'none',
+              }}
+            >
+              {label}
+            </Link>
+          ))}
+          <div className="pt-2 border-t" style={{ borderColor: 'var(--hw-border)' }}>
             <LanguageToggle />
           </div>
         </nav>
