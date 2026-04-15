@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       currency: 'cad',
-      payment_method_types: ['card', 'link'],
+      automatic_payment_methods: { enabled: true },
       line_items: lineItems,
       success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/cancel`,
