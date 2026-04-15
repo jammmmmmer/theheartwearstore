@@ -14,6 +14,13 @@
   --hw-white:   #f5f2ee;
   --hw-accent:  #c9402a;
   --hw-accent2: #e8d5b0;
+
+  /* ── 2026 Earth Tone palette ── */
+  --et-clay:    #c17c5a;   /* warm terracotta — CTAs, badges            */
+  --et-sage:    #8aab8a;   /* muted green — supporting text, borders    */
+  --et-moss:    #4a6741;   /* deep forest — high-contrast accent fills  */
+  --et-sand:    #e8ddd0;   /* off-white sand — hero headings on dark bg */
+  --et-bark:    #2e2118;   /* near-black warm brown — deep backgrounds  */
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
@@ -110,6 +117,10 @@
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
 }
 
 /* ── Utilities ──────────────────────────────────────────────────────────── */

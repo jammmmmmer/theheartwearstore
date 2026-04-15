@@ -23,7 +23,11 @@ export default function HomePageClient({ products }: HomePageClientProps) {
 
   return (
     <>
-      <HeroSection />
+      {/* latestProduct drives the "New Drop" badge; productCount feeds the live stat bar */}
+      <HeroSection
+        latestProduct={products[0] ?? null}
+        productCount={products.length}
+      />
 
       {/* ── FEATURED COLLECTION ── */}
       <section style={{ background: 'var(--hw-black)', padding: '100px 0' }}>

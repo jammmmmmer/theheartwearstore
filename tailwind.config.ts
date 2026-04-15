@@ -30,6 +30,14 @@ const config: Config = {
           accent:  '#c9402a',
           accent2: '#e8d5b0',
         },
+        // 2026 Earth Tone palette
+        et: {
+          clay: '#c17c5a',
+          sage: '#8aab8a',
+          moss: '#4a6741',
+          sand: '#e8ddd0',
+          bark: '#2e2118',
+        },
         // Keep sage so any remaining usages don't explode
         sage: {
           50:  '#f4f7f4',
