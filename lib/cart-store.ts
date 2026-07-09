@@ -76,6 +76,9 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'heartwear-cart',
+      // Persist only the items — NOT isOpen, otherwise the drawer
+      // reopens by itself on the next page load.
+      partialize: (state) => ({ items: state.items }),
     }
   )
 )

@@ -297,7 +297,8 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
           <SizeChart
             sizes={
               product.options
-                .find((o: PrintifyOption) => o.name.toLowerCase() === 'size')
+                // Printify names this option "Sizes" (plural) on some blueprints
+                .find((o: PrintifyOption) => o.name.toLowerCase().startsWith('size'))
                 ?.values.map((v) => v.title) ?? []
             }
           />

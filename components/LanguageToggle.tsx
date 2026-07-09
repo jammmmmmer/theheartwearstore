@@ -7,15 +7,15 @@ export default function LanguageToggle() {
     <div className="flex items-center text-xs font-medium tracking-wider">
       <button
         onClick={() => setLang('en')}
-        className={`px-1.5 py-0.5 transition-colors ${lang === 'en' ? 'text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}
+        className={`px-1.5 py-0.5 transition-colors ${lang === 'en' ? 'text-stone-100' : 'text-stone-500 hover:text-stone-300'}`}
         aria-label="Switch to English"
       >
         EN
       </button>
-      <span className="text-stone-300 select-none">|</span>
+      <span className="text-stone-600 select-none">|</span>
       <button
         onClick={() => setLang('fr')}
-        className={`px-1.5 py-0.5 transition-colors ${lang === 'fr' ? 'text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}
+        className={`px-1.5 py-0.5 transition-colors ${lang === 'fr' ? 'text-stone-100' : 'text-stone-500 hover:text-stone-300'}`}
         aria-label="Passer en français"
       >
         FR
