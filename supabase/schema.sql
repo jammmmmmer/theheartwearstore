@@ -13,9 +13,13 @@ create table if not exists products (
   images jsonb not null default '[]',
   price_from integer not null default 0,
   is_enabled boolean default true,
+  -- Public-uploaded custom tees: orderable by link, hidden from the shop collection.
+  is_custom boolean not null default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+-- Idempotent for existing databases (create table above is skipped if it exists).
+alter table products add column if not exists is_custom boolean not null default false;
 
 -- Orders
 create table if not exists orders (
@@ -205,3 +209,16 @@ alter table design_votes enable row level security;
 create policy "Votes are private"
   on design_votes for all
   using (false);
+
+-- Rate-limiting log for anonymous public custom uploads (service-role only).
+create table if not exists custom_upload_events (
+  id uuid primary key default gen_random_uuid(),
+  ip text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists custom_upload_events_ip_created_idx
+  on custom_upload_events (ip, created_at desc);
+
+alter table custom_upload_events enable row level security;
+-- No policies: only the service role (server) reads/writes this table.
