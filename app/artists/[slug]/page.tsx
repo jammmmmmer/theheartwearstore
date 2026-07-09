@@ -4,7 +4,7 @@ import { Product, Artist } from '@/types'
 import ArtistPageClient from '@/components/ArtistPageClient'
 
 interface PageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 async function getArtistWithProducts(
@@ -40,7 +40,8 @@ async function getArtistWithProducts(
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const data = await getArtistWithProducts(params.slug)
+  const { slug } = await params
+  const data = await getArtistWithProducts(slug)
   if (!data) return { title: 'Artist Not Found' }
   return {
     title: `${data.artist.display_name} — Artist`,
@@ -51,7 +52,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export const dynamic = 'force-dynamic'
 
 export default async function ArtistPage({ params }: PageProps) {
-  const data = await getArtistWithProducts(params.slug)
+  const { slug } = await params
+  const data = await getArtistWithProducts(slug)
   if (!data) notFound()
 
   return <ArtistPageClient artist={data.artist} products={data.products} />

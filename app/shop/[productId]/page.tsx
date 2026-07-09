@@ -55,7 +55,7 @@ async function getRelatedProducts(current: Product): Promise<Product[]> {
 }
 
 interface PageProps {
-  params: { productId: string }
+  params: Promise<{ productId: string }>
 }
 
 async function getProduct(productId: string): Promise<Product | null> {
@@ -90,7 +90,8 @@ async function getProduct(productId: string): Promise<Product | null> {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const product = await getProduct(params.productId)
+  const { productId } = await params
+  const product = await getProduct(productId)
 
   if (!product) {
     return { title: 'Product Not Found' }
@@ -111,7 +112,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ProductPage({ params }: PageProps) {
-  const product = await getProduct(params.productId)
+  const { productId } = await params
+  const product = await getProduct(productId)
 
   if (!product) {
     notFound()
