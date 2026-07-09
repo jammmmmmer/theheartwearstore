@@ -8,6 +8,9 @@ services:
       - "3002:3000"
     env_file:
       - .env.local
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - .:/app
       - /app/node_modules    # keep container's node_modules, don't overwrite with host

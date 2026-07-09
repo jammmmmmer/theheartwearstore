@@ -9,65 +9,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createDraftProduct, publishProduct } from '@/lib/printify'
 import { signToken } from '@/lib/approval-token'
+import { sendApprovalEmail } from '@/lib/send-approval-email'
+import { isUploadAuthorized } from '@/lib/session'
+import { getDefaultCatalogItem } from '@/lib/catalog'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const BLUEPRINT_ID = 145
-const PRINT_PROVIDER_ID = 6
-
-const ENABLED_VARIANT_IDS = [
-  38158, 38162, 38163, 38164,
-  38172, 38176, 38177, 38178,
-  38186, 38190, 38191, 38192,
-  38200, 38204, 38205, 38206,
-  38214, 38218, 38219, 38220,
-]
-const ALL_VARIANT_IDS = Array.from({ length: 75 }, (_, i) => 38153 + i).filter(
-  id => id <= 38231 && id !== 38224 && id !== 38226 && id !== 38228 && id !== 38230
-)
-
+// Placement geometry only — blueprint/provider/variants/price now come from
+// the catalog_items table (see lib/catalog.ts), not hardcoded constants.
 const PLACEMENTS = [
   {
     key: 'small_front',
     label: 'Small — Right Chest Front',
-    print_areas: [{
-      variant_ids: ALL_VARIANT_IDS,
-      placeholders: [{
-        position: 'front',
-        images: [{ x: 0.72, y: 0.22, scale: 0.22, angle: 0 }],
-      }],
-    }],
+    areas: [
+      { position: 'front', images: [{ x: 0.72, y: 0.22, scale: 0.22, angle: 0 }] },
+    ],
   },
   {
     key: 'full_front',
     label: 'Full Image — Front',
-    print_areas: [{
-      variant_ids: ALL_VARIANT_IDS,
-      placeholders: [{
-        position: 'front',
-        images: [{ x: 0.5, y: 0.5, scale: 1, angle: 0 }],
-      }],
-    }],
+    areas: [
+      { position: 'front', images: [{ x: 0.5, y: 0.5, scale: 1, angle: 0 }] },
+    ],
   },
   {
     key: 'full_back_small_front',
     label: 'Full Image — Back + Small Chest Front',
-    print_areas: [
-      {
-        variant_ids: ALL_VARIANT_IDS,
-        placeholders: [{
-          position: 'back',
-          images: [{ x: 0.5, y: 0.5, scale: 1, angle: 0 }],
-        }],
-      },
-      {
-        variant_ids: ALL_VARIANT_IDS,
-        placeholders: [{
-          position: 'front',
-          images: [{ x: 0.72, y: 0.22, scale: 0.22, angle: 0 }],
-        }],
-      },
+    areas: [
+      { position: 'back', images: [{ x: 0.5, y: 0.5, scale: 1, angle: 0 }] },
+      { position: 'front', images: [{ x: 0.72, y: 0.22, scale: 0.22, angle: 0 }] },
     ],
   },
 ]
@@ -77,15 +48,15 @@ export async function POST(request: NextRequest) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!
 
   try {
+    // Auth: httpOnly session cookie (browser) or Bearer SYNC_SECRET (server)
+    if (!(await isUploadAuthorized(request))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json() as {
-      secret: string
       imageId: string
       title: string
       placementKey: string
-    }
-
-    if (!body.secret || body.secret !== process.env.SYNC_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const placement = PLACEMENTS.find(p => p.key === body.placementKey)
@@ -96,25 +67,29 @@ export async function POST(request: NextRequest) {
     const { imageId, title } = body
     const description = `A unique design from The Heartwear Store. Made from 100% combed ring-spun cotton, printed on demand.`
 
-    // Inject imageId into print areas
-    const print_areas = placement.print_areas.map(area => ({
-      ...area,
-      placeholders: area.placeholders.map(ph => ({
-        ...ph,
-        images: ph.images.map(img => ({ ...img, id: imageId })),
-      })),
+    // Garment config from the catalog (falls back to the original tee)
+    const catalogItem = await getDefaultCatalogItem()
+    const enabledSet = new Set(catalogItem.enabled_variant_ids)
+
+    // Build print areas: placement geometry × catalog variants × uploaded image
+    const print_areas = placement.areas.map(area => ({
+      variant_ids: catalogItem.all_variant_ids,
+      placeholders: [{
+        position: area.position,
+        images: area.images.map(img => ({ ...img, id: imageId })),
+      }],
     }))
 
     const product = await createDraftProduct(shopId, {
       title: `${title} (${placement.label})`,
       description,
       tags: ['heartwear', 'unisex', 't-shirt', 'custom'],
-      blueprint_id: BLUEPRINT_ID,
-      print_provider_id: PRINT_PROVIDER_ID,
-      variants: ALL_VARIANT_IDS.map(id => ({
+      blueprint_id: catalogItem.blueprint_id,
+      print_provider_id: catalogItem.print_provider_id,
+      variants: catalogItem.all_variant_ids.map(id => ({
         id,
-        price: 3999,
-        is_enabled: ENABLED_VARIANT_IDS.includes(id),
+        price: catalogItem.price,
+        is_enabled: enabledSet.has(id),
       })),
       print_areas,
     })
@@ -144,13 +119,30 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single()
 
-    if (dbError) throw new Error(`DB insert failed: ${dbError.message}`)
+    if (dbError) {
+      console.error('[upload] DB insert failed — full error:', JSON.stringify(dbError, null, 2))
+      console.error('[upload] DB insert failed — code:', dbError.code, '| message:', dbError.message, '| details:', dbError.details, '| hint:', dbError.hint)
+      throw new Error(`DB insert failed: ${dbError.code ? `[${dbError.code}] ` : ''}${dbError.message}`)
+    }
 
     const pendingId = pending.id
     const [approveToken, rejectToken] = await Promise.all([
       signToken({ pendingId, printifyId, action: 'approve' }),
       signToken({ pendingId, printifyId, action: 'reject' }),
     ])
+
+    // Send approval email (non-fatal — upload succeeds even if email fails)
+    try {
+      await sendApprovalEmail({
+        topic: `manual upload — ${placement.label}`,
+        title: `${title} (${placement.label})`,
+        mockupUrl,
+        approveUrl: `${siteUrl}/api/auto-product/approve?token=${approveToken}`,
+        rejectUrl: `${siteUrl}/api/auto-product/reject?token=${rejectToken}`,
+      })
+    } catch (emailErr) {
+      console.warn('[upload] Approval email failed (non-fatal):', emailErr)
+    }
 
     return NextResponse.json({
       ok: true,

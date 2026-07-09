@@ -1,7 +1,58 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { Product } from '@/types'
+import { Product, Artist } from '@/types'
 import ProductDetail from '@/components/ProductDetail'
+import RelatedProducts from '@/components/RelatedProducts'
+
+/** Public artist info for attribution, if the product has one. */
+async function getArtist(artistId: string | null | undefined): Promise<Artist | null> {
+  if (!artistId) return null
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const { data } = await supabase
+      .from('artists')
+      .select('id, slug, display_name, bio, commission_pct')
+      .eq('id', artistId)
+      .maybeSingle()
+    return (data as Artist | null) ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Other enabled products ranked by shared tags (top 4). */
+async function getRelatedProducts(current: Product): Promise<Product[]> {
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .neq('id', current.id)
+      .limit(50)
+    if (error || !data) return []
+
+    const currentTags = new Set((current.tags ?? []).map((t) => t.toLowerCase()))
+    return (data as Product[])
+      .filter((p) => p.is_enabled !== false)
+      .map((p) => ({
+        product: p,
+        score: (p.tags ?? []).filter((t) => currentTags.has(t.toLowerCase())).length,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map((s) => s.product)
+  } catch {
+    return []
+  }
+}
 
 interface PageProps {
   params: { productId: string }
@@ -26,11 +77,13 @@ async function getProduct(productId: string): Promise<Product | null> {
       .from('products')
       .select('*')
       .eq('id', productId)
-      .eq('is_enabled', true)
       .single()
 
     if (error || !data) return null
-    return data as Product
+    const product = data as Product
+    // Respect is_enabled flag in JS (Supabase boolean filter has coercion bug)
+    if (product.is_enabled === false) return null
+    return product
   } catch {
     return null
   }
@@ -64,5 +117,15 @@ export default async function ProductPage({ params }: PageProps) {
     notFound()
   }
 
-  return <ProductDetail product={product} />
+  const [related, artist] = await Promise.all([
+    getRelatedProducts(product),
+    getArtist(product.artist_id),
+  ])
+
+  return (
+    <>
+      <ProductDetail product={product} artist={artist} />
+      <RelatedProducts products={related} />
+    </>
+  )
 }

@@ -156,6 +156,65 @@ export async function deleteProduct(shopId: string, productId: string): Promise<
   }
 }
 
+// ─── Catalog ───────────────────────────────────────────────────────────────
+
+export interface CatalogVariant {
+  id: number
+  title: string
+  options: Record<string, string> // e.g. { color: "Black", size: "S" }
+  placeholders?: { position: string; width: number; height: number }[]
+}
+
+/**
+ * Fetch all variants a print provider offers for a blueprint from the
+ * Printify catalog (sizes, colors, print placeholders).
+ */
+export async function getCatalogVariants(
+  blueprintId: number,
+  printProviderId: number
+): Promise<{ id: number; title: string; variants: CatalogVariant[] }> {
+  const res = await fetch(
+    `${PRINTIFY_BASE_URL}/catalog/blueprints/${blueprintId}/print_providers/${printProviderId}/variants.json`,
+    { headers: getHeaders() }
+  )
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Printify getCatalogVariants failed: ${res.status} - ${err}`)
+  }
+  return res.json()
+}
+
+export interface CatalogShippingProfile {
+  variant_ids: number[]
+  first_item: { cost: number; currency: string } // USD cents
+  additional_items: { cost: number; currency: string }
+  countries: string[] // ISO codes or "REST_OF_THE_WORLD"
+}
+
+export interface CatalogShipping {
+  handling_time?: { value: number; unit: string }
+  profiles: CatalogShippingProfile[]
+}
+
+/**
+ * Fetch what Printify charges to ship a blueprint from a print provider,
+ * per destination country (standard shipping). Costs are USD cents.
+ */
+export async function getCatalogShipping(
+  blueprintId: number,
+  printProviderId: number
+): Promise<CatalogShipping> {
+  const res = await fetch(
+    `${PRINTIFY_BASE_URL}/catalog/blueprints/${blueprintId}/print_providers/${printProviderId}/shipping.json`,
+    { headers: getHeaders() }
+  )
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Printify getCatalogShipping failed: ${res.status} - ${err}`)
+  }
+  return res.json()
+}
+
 // ─── Orders ────────────────────────────────────────────────────────────────
 
 export async function createOrder(

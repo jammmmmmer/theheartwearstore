@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // 2. Check pending_products row
     const { data: pending, error: fetchError } = await supabaseAdmin()
       .from('pending_products')
-      .select('id, status, printify_id, title')
+      .select('id, status, printify_id, title, artist_id')
       .eq('id', payload.pendingId)
       .single()
 
@@ -78,6 +78,8 @@ export async function GET(request: NextRequest) {
         images: product.images || [],
         price_from: priceFrom,
         is_enabled: true,
+        // Artist attribution flows from the submission to the live product
+        artist_id: pending.artist_id ?? null,
       }, { onConflict: 'printify_id' })
 
     if (upsertError) throw new Error(`Supabase upsert failed: ${upsertError.message}`)

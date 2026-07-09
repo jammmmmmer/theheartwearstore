@@ -16,26 +16,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { uploadImageToPrintify, createDraftProduct } from '@/lib/printify'
 import { signToken } from '@/lib/approval-token'
+import { sendApprovalEmail } from '@/lib/send-approval-email'
+import { getDefaultCatalogItem } from '@/lib/catalog'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-// Blueprint 145 = Unisex Softstyle T-Shirt (same as existing products)
-// Print provider 6 = T Shirt and Sons (same as existing products)
-const BLUEPRINT_ID = 145
-const PRINT_PROVIDER_ID = 6
-
-// Enabled variants: Black/White/Navy/Sport Grey × S/M/L/XL/2XL
-const ENABLED_VARIANT_IDS = [
-  38158, 38162, 38163, 38164,
-  38172, 38176, 38177, 38178,
-  38186, 38190, 38191, 38192,
-  38200, 38204, 38205, 38206,
-  38214, 38218, 38219, 38220,
-]
-const ALL_VARIANT_IDS = Array.from({ length: 75 }, (_, i) => 38153 + i).filter(
-  id => id <= 38231 && id !== 38224 && id !== 38226 && id !== 38228 && id !== 38230
-)
+// Blueprint/provider/variants/price come from the catalog_items table
+// (see lib/catalog.ts) — no longer hardcoded here.
 
 async function getTrendingTopic(): Promise<string> {
   try {
@@ -101,69 +89,9 @@ No text, no words, no letters. Pure visual art only. High contrast, bold lines.`
   return imagePart.inlineData.data // base64 string
 }
 
-async function sendApprovalEmail(params: {
-  topic: string
-  title: string
-  mockupUrl: string
-  approveUrl: string
-  rejectUrl: string
-}): Promise<void> {
-  const { topic, title, mockupUrl, approveUrl, rejectUrl } = params
-
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0c0a09;font-family:Georgia,serif;color:#f5f5f4;">
-  <div style="max-width:560px;margin:40px auto;padding:32px;background:#1c1917;border-radius:12px;">
-    <p style="color:#84a87a;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 8px">New Design Ready for Review</p>
-    <h1 style="color:#f5f5f4;font-size:26px;margin:0 0 24px;line-height:1.3">${title}</h1>
-
-    <p style="color:#a8a29e;font-size:14px;margin:0 0 20px">Inspired by trending topic: <strong style="color:#d6d3d1">${topic}</strong></p>
-
-    ${mockupUrl ? `<img src="${mockupUrl}" alt="${title}" style="width:100%;border-radius:8px;margin-bottom:24px;display:block">` : ''}
-
-    <p style="color:#a8a29e;font-size:14px;margin:0 0 28px">Does this design feel right for The Heartwear Store? One click to decide.</p>
-
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td style="padding-right:8px">
-          <a href="${approveUrl}" style="display:block;text-align:center;background:#4d7c3e;color:#fff;text-decoration:none;padding:14px 24px;border-radius:8px;font-size:15px;font-weight:600">
-            ✓ Approve &amp; Publish
-          </a>
-        </td>
-        <td style="padding-left:8px">
-          <a href="${rejectUrl}" style="display:block;text-align:center;background:#292524;color:#a8a29e;text-decoration:none;padding:14px 24px;border-radius:8px;font-size:15px;border:1px solid #44403c">
-            ✕ Reject &amp; Delete
-          </a>
-        </td>
-      </tr>
-    </table>
-
-    <p style="color:#57534e;font-size:12px;margin:28px 0 0;text-align:center">These links expire in 7 days. Each link can only be used once.</p>
-  </div>
-</body>
-</html>`
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `The Heartwear Store <noreply@${process.env.EMAIL_DOMAIN || 'theheartwearstore.ca'}>`,
-      to: process.env.OWNER_EMAIL!,
-      subject: `New Design Ready: ${title}`,
-      html,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Email send failed: ${res.status} - ${err}`)
-  }
-}
+// (Approval email HTML lives in lib/send-approval-email.ts — shared with the
+// manual upload flow. The previous local duplicate shadowed the import and
+// broke the TypeScript build.)
 
 export async function POST(request: NextRequest) {
   // Auth check
@@ -198,19 +126,21 @@ export async function POST(request: NextRequest) {
 
     // 5. Create draft product in Printify (not published to store)
     console.log('[auto-product] Creating draft product in Printify...')
+    const catalogItem = await getDefaultCatalogItem()
+    const enabledSet = new Set(catalogItem.enabled_variant_ids)
     const product = await createDraftProduct(shopId, {
       title,
       description,
       tags: ['nature', 'heart', 'unisex', 't-shirt', slug],
-      blueprint_id: BLUEPRINT_ID,
-      print_provider_id: PRINT_PROVIDER_ID,
-      variants: ALL_VARIANT_IDS.map(id => ({
+      blueprint_id: catalogItem.blueprint_id,
+      print_provider_id: catalogItem.print_provider_id,
+      variants: catalogItem.all_variant_ids.map(id => ({
         id,
-        price: 3999,
-        is_enabled: ENABLED_VARIANT_IDS.includes(id),
+        price: catalogItem.price,
+        is_enabled: enabledSet.has(id),
       })),
       print_areas: [{
-        variant_ids: ALL_VARIANT_IDS,
+        variant_ids: catalogItem.all_variant_ids,
         placeholders: [{
           position: 'front',
           images: [{ id: uploadedImage.id, x: 0.5, y: 0.5, scale: 1, angle: 0 }],
@@ -248,9 +178,13 @@ export async function POST(request: NextRequest) {
     const approveUrl = `${siteUrl}/api/auto-product/approve?token=${approveToken}`
     const rejectUrl = `${siteUrl}/api/auto-product/reject?token=${rejectToken}`
 
-    // 8. Send email to Jamie
+    // 8. Send email to Jamie (non-fatal — the product is already pending approval)
     console.log('[auto-product] Sending approval email...')
-    await sendApprovalEmail({ topic, title, mockupUrl, approveUrl, rejectUrl })
+    try {
+      await sendApprovalEmail({ topic, title, mockupUrl, approveUrl, rejectUrl })
+    } catch (emailErr) {
+      console.warn('[auto-product] Approval email failed (non-fatal):', emailErr)
+    }
 
     console.log(`[auto-product] Done. Product ${printifyId} pending approval.`)
     return NextResponse.json({ ok: true, topic, title, printifyId, pendingId })

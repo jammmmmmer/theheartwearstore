@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PrintifyVariant, Product } from '@/types'
 import { Zap } from 'lucide-react'
 import { useTranslation } from '@/lib/language-context'
+import { useCurrency } from '@/lib/currency-context'
 
 interface Props {
   product: Product
@@ -13,6 +14,7 @@ interface Props {
 export default function BuyNowButton({ product, variant }: Props) {
   const [loading, setLoading] = useState(false)
   const { tr } = useTranslation()
+  const { currency } = useCurrency()
 
   async function handleBuyNow() {
     setLoading(true)
@@ -27,6 +29,7 @@ export default function BuyNowButton({ product, variant }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          currency,
           items: [{
             product_id: product.id,
             printify_id: product.printify_id,
@@ -53,7 +56,7 @@ export default function BuyNowButton({ product, variant }: Props) {
     <button
       onClick={handleBuyNow}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 py-4 text-sm tracking-widest uppercase bg-stone-100 text-stone-900 border border-stone-300 hover:bg-stone-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full flex items-center justify-center gap-2 py-4 text-[15px] font-semibold rounded-control bg-stone-50 text-stone-950 hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <Zap size={15} strokeWidth={1.5} />
       {loading ? tr.product_redirecting : tr.product_buy_now}

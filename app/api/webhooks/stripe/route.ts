@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase'
-import { createOrder } from '@/lib/printify'
+import { submitOrderToPrintify, shippingMethodFromAmount } from '@/lib/fulfillment'
 import { CartItem, ShippingAddress } from '@/types'
 import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
+
+/** Postgres unique-violation — means this webhook event was already processed */
+const UNIQUE_VIOLATION = '23505'
 
 export async function POST(request: NextRequest) {
   let event: Stripe.Event
@@ -64,8 +67,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       items = []
     }
 
-    // Build shipping address
+    // Build shipping address (phone collected via phone_number_collection)
     const shipping = fullSession.shipping_details
+    const phone = fullSession.customer_details?.phone ?? undefined
     const shippingAddress: ShippingAddress = {
       line1: shipping?.address?.line1 ?? '',
       line2: shipping?.address?.line2 ?? undefined,
@@ -73,20 +77,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       state: shipping?.address?.state ?? '',
       postal_code: shipping?.address?.postal_code ?? '',
       country: shipping?.address?.country ?? '',
+      phone,
     }
 
-    // Split customer name
     const customerName = shipping?.name ?? session.customer_details?.name ?? ''
-    const nameParts = customerName.trim().split(' ')
-    const firstName = nameParts[0] ?? ''
-    const lastName = nameParts.slice(1).join(' ') || firstName
-
     const customerEmail =
       session.customer_email ??
       session.customer_details?.email ??
       ''
 
     const totalAmount = fullSession.amount_total ?? 0
+
+    // Map the shipping option the customer actually paid for to Printify's
+    // method (1 = standard, 2 = express) — previously hardcoded to standard.
+    const shippingMethod = shippingMethodFromAmount(fullSession.shipping_cost?.amount_total)
 
     // Insert order into Supabase
     const { data: orderData, error: orderError } = await db
@@ -109,69 +113,23 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       .single()
 
     if (orderError) {
-      console.error('Failed to insert order into Supabase:', orderError)
-      return
-    }
-
-    const orderId = orderData?.id as string
-
-    // Submit order to Printify
-    const shopId = process.env.PRINTIFY_SHOP_ID
-    if (!shopId) {
-      console.error('PRINTIFY_SHOP_ID not configured — skipping Printify order creation')
-      return
-    }
-
-    if (items.length === 0) {
-      console.warn('No line items found in order — skipping Printify order')
-      return
-    }
-
-    try {
-      const printifyOrder = await createOrder(shopId, {
-        external_id: orderId,
-        label: `Heartwear Order #${orderId.slice(0, 8).toUpperCase()}`,
-        line_items: items.map((item) => ({
-          product_id: item.printify_id,
-          variant_id: item.variant_id,
-          quantity: item.quantity,
-        })),
-        shipping_method: 1, // standard
-        send_shipping_notification: true,
-        address_to: {
-          first_name: firstName,
-          last_name: lastName,
-          email: customerEmail,
-          country: shippingAddress.country,
-          region: shippingAddress.state,
-          address1: shippingAddress.line1,
-          address2: shippingAddress.line2,
-          city: shippingAddress.city,
-          zip: shippingAddress.postal_code,
-        },
-      })
-
-      // Update order with Printify ID
-      const { error: updateError } = await db
-        .from('orders')
-        .update({
-          printify_order_id: printifyOrder.id,
-          status: 'submitted',
-        })
-        .eq('id', orderId)
-
-      if (updateError) {
-        console.error('Failed to update order with Printify ID:', updateError)
+      if (orderError.code === UNIQUE_VIOLATION) {
+        console.log(`[stripe-webhook] Duplicate delivery for session ${session.id} — order already recorded, skipping`)
+      } else {
+        console.error('Failed to insert order into Supabase:', orderError)
       }
-    } catch (printifyErr) {
-      console.error('Failed to create Printify order:', printifyErr)
-
-      // Update order status to reflect submission failure
-      await db
-        .from('orders')
-        .update({ status: 'failed' })
-        .eq('id', orderId)
+      return
     }
+
+    await submitOrderToPrintify({
+      orderId: orderData.id as string,
+      items,
+      address: shippingAddress,
+      customerName,
+      customerEmail,
+      phone,
+      shippingMethod,
+    })
   } catch (err) {
     console.error('Error handling checkout.session.completed:', err)
   }
@@ -193,19 +151,28 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       ? await stripe.charges.retrieve(typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge.id, { expand: ['billing_details'] })
       : null
 
-    const customerName = charge?.billing_details?.name ?? ''
-    const customerEmail = charge?.billing_details?.email ?? pi.receipt_email ?? ''
-    const nameParts = customerName.trim().split(' ')
-    const firstName = nameParts[0] ?? ''
-    const lastName = nameParts.slice(1).join(' ') || firstName
+    // SHIPPING FIX: use the shipping address attached to the PaymentIntent
+    // (set by /api/payment-intent from the wallet sheet). Billing details are
+    // only a fallback — previously wallet orders shipped to the billing
+    // address, which is wrong whenever the two differ.
+    const shippingSource = pi.shipping?.address ?? charge?.billing_details?.address ?? null
+    if (!pi.shipping?.address) {
+      console.warn(`[stripe-webhook] PaymentIntent ${pi.id} has no shipping address — falling back to billing address`)
+    }
+
+    const customerName =
+      pi.shipping?.name ?? charge?.billing_details?.name ?? ''
+    const customerEmail = pi.receipt_email ?? charge?.billing_details?.email ?? ''
+    const phone = pi.shipping?.phone ?? charge?.billing_details?.phone ?? undefined
 
     const shippingAddress: ShippingAddress = {
-      line1: charge?.billing_details?.address?.line1 ?? '',
-      line2: charge?.billing_details?.address?.line2 ?? undefined,
-      city: charge?.billing_details?.address?.city ?? '',
-      state: charge?.billing_details?.address?.state ?? '',
-      postal_code: charge?.billing_details?.address?.postal_code ?? '',
-      country: charge?.billing_details?.address?.country ?? '',
+      line1: shippingSource?.line1 ?? '',
+      line2: shippingSource?.line2 ?? undefined,
+      city: shippingSource?.city ?? '',
+      state: shippingSource?.state ?? '',
+      postal_code: shippingSource?.postal_code ?? '',
+      country: shippingSource?.country ?? '',
+      phone,
     }
 
     const { data: orderData, error: orderError } = await db
@@ -224,43 +191,23 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
       .single()
 
     if (orderError) {
-      console.error('Failed to insert Apple Pay order:', orderError)
+      if (orderError.code === UNIQUE_VIOLATION) {
+        console.log(`[stripe-webhook] Duplicate delivery for PaymentIntent ${pi.id} — order already recorded, skipping`)
+      } else {
+        console.error('Failed to insert Apple Pay order:', orderError)
+      }
       return
     }
 
-    const orderId = orderData?.id as string
-    const shopId = process.env.PRINTIFY_SHOP_ID
-    if (!shopId || items.length === 0) return
-
-    try {
-      const printifyOrder = await createOrder(shopId, {
-        external_id: orderId,
-        label: `Heartwear Order #${orderId.slice(0, 8).toUpperCase()}`,
-        line_items: items.map((item) => ({
-          product_id: item.printify_id,
-          variant_id: item.variant_id,
-          quantity: item.quantity,
-        })),
-        shipping_method: Number(pi.metadata?.shipping_amount) === 1499 ? 2 : 1,
-        send_shipping_notification: true,
-        address_to: {
-          first_name: firstName,
-          last_name: lastName,
-          email: customerEmail,
-          country: shippingAddress.country,
-          region: shippingAddress.state,
-          address1: shippingAddress.line1,
-          address2: shippingAddress.line2,
-          city: shippingAddress.city,
-          zip: shippingAddress.postal_code,
-        },
-      })
-
-      await db.from('orders').update({ printify_order_id: printifyOrder.id, status: 'submitted' }).eq('id', orderId)
-    } catch (err) {
-      console.error('Failed to create Printify order from Apple Pay:', err)
-      await db.from('orders').update({ status: 'failed' }).eq('id', orderId)
-    }
+    await submitOrderToPrintify({
+      orderId: orderData.id as string,
+      items,
+      address: shippingAddress,
+      customerName,
+      customerEmail,
+      phone,
+      shippingMethod: shippingMethodFromAmount(Number(pi.metadata?.shipping_amount)),
+    })
   } catch (err) {
     console.error('Error handling payment_intent.succeeded:', err)
   }

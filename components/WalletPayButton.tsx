@@ -5,6 +5,8 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentRequestButtonElement, useStripe } from '@stripe/react-stripe-js'
 import type { PaymentRequest } from '@stripe/stripe-js'
 import { PrintifyVariant, Product } from '@/types'
+import { useCurrency } from '@/lib/currency-context'
+import { priceInCurrency, formatMoney, SHIPPING_RATES } from '@/lib/currency'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -15,29 +17,59 @@ interface InnerProps {
 
 function WalletPayInner({ product, variant }: InnerProps) {
   const stripe = useStripe()
+  const { currency } = useCurrency()
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null)
 
   useEffect(() => {
     if (!stripe) return
 
+    const unitAmount = priceInCurrency(variant.price, currency)
+    const rates = SHIPPING_RATES[currency]
+
     const pr = stripe.paymentRequest({
       country: 'CA',
-      currency: 'cad',
+      currency,
       total: {
         label: `${product.title} — ${variant.title}`,
-        amount: variant.price + 799, // include standard shipping
+        amount: unitAmount + rates.standard, // include standard shipping
       },
       shippingOptions: [
-        { id: 'standard', label: 'Standard Shipping (5–10 days)', detail: 'CAD $7.99', amount: 799 },
-        { id: 'express', label: 'Express Shipping (2–4 days)', detail: 'CAD $14.99', amount: 1499 },
+        { id: 'standard', label: 'Standard Shipping (5–10 days)', detail: formatMoney(rates.standard, currency), amount: rates.standard },
+        { id: 'express', label: 'Express Shipping (2–4 days)', detail: formatMoney(rates.express, currency), amount: rates.express },
       ],
       requestShipping: true,
       requestPayerName: true,
       requestPayerEmail: true,
+      requestPayerPhone: true,
     })
 
     pr.canMakePayment().then((result) => {
       if (result) setPaymentRequest(pr)
+    })
+
+    // Real destination-based rates: when the shopper picks an address in the
+    // wallet sheet, re-quote shipping for that country from the server.
+    pr.on('shippingaddresschange', async (ev) => {
+      try {
+        const country = ev.shippingAddress?.country ?? (currency === 'usd' ? 'US' : 'CA')
+        const res = await fetch(
+          `/api/shipping-quote?country=${encodeURIComponent(country)}&currency=${currency}&qty=1`
+        )
+        const quote = await res.json() as { standard: number; express: number }
+        ev.updateWith({
+          status: 'success',
+          shippingOptions: [
+            { id: 'standard', label: 'Standard Shipping (5–10 days)', detail: formatMoney(quote.standard, currency), amount: quote.standard },
+            { id: 'express', label: 'Express Shipping (2–4 days)', detail: formatMoney(quote.express, currency), amount: quote.express },
+          ],
+          total: {
+            label: `${product.title} — ${variant.title}`,
+            amount: unitAmount + quote.standard,
+          },
+        })
+      } catch {
+        ev.updateWith({ status: 'success' })
+      }
     })
 
     pr.on('shippingoptionchange', (ev) => {
@@ -45,26 +77,40 @@ function WalletPayInner({ product, variant }: InnerProps) {
         status: 'success',
         total: {
           label: `${product.title} — ${variant.title}`,
-          amount: variant.price + ev.shippingOption.amount,
+          amount: unitAmount + ev.shippingOption.amount,
         },
       })
     })
 
     pr.on('paymentmethod', async (ev) => {
-      const shippingAmount = ev.shippingOption?.amount ?? 799
+      const shippingAmount = ev.shippingOption?.amount ?? rates.standard
+
+      // Forward the wallet sheet's SHIPPING address — the server attaches it
+      // to the PaymentIntent so fulfillment ships to it (not billing).
+      const sa = ev.shippingAddress
+      const shippingAddress = sa
+        ? {
+            name: sa.recipient ?? ev.payerName ?? '',
+            phone: sa.phone ?? ev.payerPhone ?? '',
+            line1: sa.addressLine?.[0] ?? '',
+            line2: sa.addressLine?.[1] ?? '',
+            city: sa.city ?? '',
+            state: sa.region ?? '',
+            postal_code: sa.postalCode ?? '',
+            country: sa.country ?? '',
+          }
+        : undefined
 
       const res = await fetch('/api/payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: variant.price,
+          currency,
           shippingAmount,
           variantId: variant.id,
-          productId: product.id,
           printifyId: product.printify_id,
-          title: product.title,
-          variantTitle: variant.title,
-          image: product.images[0]?.src ?? '',
+          payerEmail: ev.payerEmail ?? '',
+          shippingAddress,
         }),
       })
 
@@ -86,7 +132,7 @@ function WalletPayInner({ product, variant }: InnerProps) {
     })
 
     return () => { setPaymentRequest(null) }
-  }, [stripe, product, variant])
+  }, [stripe, product, variant, currency])
 
   if (!paymentRequest) return null
 

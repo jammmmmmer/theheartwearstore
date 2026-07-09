@@ -31,6 +31,15 @@ export interface Product {
   options: PrintifyOption[]
   price_from: number // lowest variant price in cents
   is_enabled: boolean
+  artist_id?: string | null
+}
+
+export interface Artist {
+  id: string
+  slug: string
+  display_name: string
+  bio: string
+  commission_pct: number
 }
 
 export interface CartItem {
@@ -66,4 +75,6 @@ export interface ShippingAddress {
   state: string
   postal_code: string
   country: string
+  /** Stored inside the shipping_address JSONB — some carriers require it */
+  phone?: string
 }

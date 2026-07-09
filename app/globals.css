@@ -2,96 +2,238 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── CSS custom properties ──────────────────────────────────────────────── */
-:root {
-  --hw-black:   #0a0a0a;
-  --hw-off:     #111111;
-  --hw-surface: #161616;
-  --hw-border:  #222222;
-  --hw-muted:   #555555;
-  --hw-mid:     #888888;
-  --hw-light:   #cccccc;
-  --hw-white:   #f5f2ee;
-  --hw-accent:  #c9402a;
-  --hw-accent2: #e8d5b0;
+/* ═══════════════════════════════════════════════════════════════════════
+   Direction C — "Heartline"
+   Bone-white ground, ink type, ONE bold heart-red, stitched dashed borders
+   (the thread motif), chunky ink-bordered cards with hard offset shadows,
+   Syne display headlines + Manrope UI + Fraunces italic poetic accents.
 
-  /* ── 2026 Earth Tone palette ── */
-  --et-clay:    #c17c5a;   /* warm terracotta — CTAs, badges            */
-  --et-sage:    #8aab8a;   /* muted green — supporting text, borders    */
-  --et-moss:    #4a6741;   /* deep forest — high-contrast accent fills  */
-  --et-sand:    #e8ddd0;   /* off-white sand — hero headings on dark bg */
-  --et-bark:    #2e2118;   /* near-black warm brown — deep backgrounds  */
+   Legacy token NAMES are kept so every existing inline style flips to the
+   new theme automatically:
+     --hw-black  = page background (bone)
+     --hw-white  = primary text   (ink)
+     --et-*      = accent roles
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Surfaces */
+  --hw-black:   #f6f4ef;   /* page background — bone                  */
+  --hw-off:     #ffffff;   /* raised surfaces (drawer, footer)        */
+  --hw-surface: #ffffff;   /* cards                                   */
+  --hw-border:  #e4e0d8;   /* soft borders                            */
+  --hw-stitch:  #d8d2c6;   /* dashed "thread" borders                 */
+
+  /* Ink scale */
+  --hw-white:   #12100e;   /* primary text — ink                      */
+  --hw-light:   #3a3630;   /* strong secondary text                   */
+  --hw-mid:     #4c4842;   /* secondary text                          */
+  --hw-muted:   #6d675e;   /* tertiary text / captions (4.9:1)        */
+
+  /* Accent — THE heart red */
+  --hw-accent:  #d64533;
+  --hw-accent2: #b23222;   /* deep red — hovers, offset shadows       */
+
+  /* Legacy earth-tone roles, remapped */
+  --et-clay:    #d64533;   /* CTAs & eyebrows → heart red             */
+  --et-sage:    #4e684e;   /* artist credits — muted green (5:1)      */
+  --et-moss:    #3f5a3f;   /* deep green accent                       */
+  --et-sand:    #12100e;   /* was light heading on dark → now ink     */
+  --et-bark:    #ffffff;   /* was deep section bg → now white         */
+
+  /* Gallery-stage gradient (product imagery backdrops) */
+  --hw-stage-from: #fbfaf6;
+  --hw-stage-to:   #f1eee7;
+
+  /* Shape & depth — Heartline is chunky and graphic */
+  --hw-radius-lg: 22px;
+  --hw-radius-md: 14px;
+  --hw-shadow-sm: 0 2px 10px rgba(18, 16, 14, 0.05);
+  --hw-shadow-md: 6px 6px 0 var(--hw-white);
+  --hw-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* Type system — legacy var names remapped so existing components inherit */
+  --font-sans-stack: var(--font-manrope), 'Helvetica Neue', system-ui, sans-serif;
+  --font-display:    var(--font-syne), var(--font-manrope), sans-serif;
+  --font-dm-serif:   var(--font-display);     /* headings → Syne          */
+  --font-space-mono: var(--font-sans-stack);  /* labels   → Manrope       */
+  --font-dm-sans:    var(--font-sans-stack);
+  --font-poetic:     var(--font-fraunces), Georgia, serif;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
-    @apply bg-hw-black text-hw-white antialiased;
-    font-family: var(--font-dm-sans), system-ui, sans-serif;
-    scrollbar-color: #333 #0a0a0a;
-  }
-
-  /* Film-grain noise overlay — applied via pseudo on body */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-    opacity: 0.03;
-    pointer-events: none;
-    z-index: 9999;
+    background-color: var(--hw-black);
+    color: var(--hw-white);
+    @apply antialiased;
+    font-family: var(--font-sans-stack);
+    letter-spacing: -0.005em;
+    scrollbar-color: #c9c4b8 var(--hw-black);
   }
 
   h1, h2, h3 {
-    font-family: var(--font-dm-serif), Georgia, serif;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Visible focus for keyboard users (WCAG) */
+  :focus-visible {
+    outline: 2.5px solid var(--hw-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    html { scroll-behavior: auto; }
   }
 }
 
 /* ── Components ─────────────────────────────────────────────────────────── */
 @layer components {
 
-  /* Primary button — white fill, black text */
+  /* Primary button — ink block with hard offset shadow */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2
-           bg-hw-white text-hw-black
-           px-8 py-3.5
-           text-[10px] tracking-[0.2em] uppercase
-           font-mono
-           transition-colors duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-8;
+    background: var(--hw-white);
+    color: var(--hw-off);
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-radius: var(--hw-radius-md);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: 0 5px 0 #000;
+    transition: transform 0.15s var(--hw-ease), box-shadow 0.15s var(--hw-ease);
   }
   .btn-primary:hover {
-    background-color: var(--hw-accent2);
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 #000;
   }
 
-  /* Ghost / outline button */
+  /* Ghost — white block with ink border + offset shadow */
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2
-           border border-hw-border text-hw-mid
-           px-8 py-3.5
-           text-[10px] tracking-[0.2em] uppercase
-           font-mono
-           transition-colors duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-8;
+    background: var(--hw-off);
+    color: var(--hw-white);
+    border: 2px solid var(--hw-white);
+    padding-top: 12px;
+    padding-bottom: 12px;
+    border-radius: var(--hw-radius-md);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: 0 5px 0 var(--hw-white);
+    transition: transform 0.15s var(--hw-ease), box-shadow 0.15s var(--hw-ease);
   }
   .btn-outline:hover {
-    @apply border-hw-mid text-hw-white;
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 var(--hw-white);
   }
 
-  /* Section eyebrow label */
-  .hw-eyebrow {
-    @apply flex items-center gap-3
-           text-[10px] tracking-[0.28em] uppercase
-           font-mono text-hw-accent;
-  }
-  .hw-eyebrow::before {
-    content: '';
-    display: block;
-    width: 20px;
-    height: 1px;
+  /* Accent — heart-red block with deep-red offset shadow */
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 px-8;
     background: var(--hw-accent);
+    color: #fff;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-radius: var(--hw-radius-md);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: 0 5px 0 var(--hw-accent2);
+    transition: transform 0.15s var(--hw-ease), box-shadow 0.15s var(--hw-ease);
+  }
+  .btn-accent:hover {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 var(--hw-accent2);
+  }
+
+  /* Section eyebrow — bold red label */
+  .hw-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hw-accent);
+  }
+  .hw-eyebrow::before { content: none; }
+
+  /* Kicker pill — outlined badge with pulsing heart dot */
+  .hw-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 2px solid var(--hw-white);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hw-white);
+    background: var(--hw-off);
+  }
+  .hw-kicker .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--hw-accent);
+    animation: pulseDot 2s ease-in-out infinite;
+  }
+
+  /* The single serif voice — poetic italic accents */
+  .poetic {
+    font-family: var(--font-poetic);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+
+  /* Frosted chrome (header) with stitched bottom edge */
+  .hw-glass {
+    background: rgba(246, 244, 239, 0.92);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 2px dashed var(--hw-stitch);
+  }
+
+  /* Heartline card — chunky ink border, hard shadow on hover */
+  .hw-card {
+    background: var(--hw-surface);
+    border: 2px solid var(--hw-white);
+    border-radius: var(--hw-radius-lg);
+    transition: transform 0.2s var(--hw-ease), box-shadow 0.2s var(--hw-ease);
+  }
+  .hw-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 6px 6px 0 var(--hw-white);
+  }
+
+  /* Product image stage */
+  .hw-stage {
+    background: linear-gradient(180deg, var(--hw-stage-from), var(--hw-stage-to));
+  }
+
+  /* Stitched divider — the thread motif */
+  .hw-stitched {
+    border-bottom: 2px dashed var(--hw-stitch);
   }
 
   /* Heart-a — the ♥ that replaces the 'a' in Heartwear */
@@ -125,12 +267,13 @@
 
 /* ── Utilities ──────────────────────────────────────────────────────────── */
 @layer utilities {
-  .font-serif   { font-family: var(--font-dm-serif), Georgia, serif; }
-  .font-mono    { font-family: var(--font-space-mono), monospace; }
-  .font-sans    { font-family: var(--font-dm-sans), system-ui, sans-serif; }
+  .font-serif   { font-family: var(--font-display); }
+  .font-mono    { font-family: var(--font-sans-stack); }
+  .font-sans    { font-family: var(--font-sans-stack); }
   /* Legacy aliases */
-  .font-playfair { font-family: var(--font-dm-serif), Georgia, serif; }
-  .font-inter    { font-family: var(--font-dm-sans), system-ui, sans-serif; }
+  .font-playfair { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+  .font-inter    { font-family: var(--font-sans-stack); }
+  .font-fraunces { font-family: var(--font-poetic); }
 
   .text-hw-accent  { color: var(--hw-accent); }
   .text-hw-accent2 { color: var(--hw-accent2); }

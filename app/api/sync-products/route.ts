@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   let synced = 0
+  let orphansDisabled = 0
   const errors: string[] = []
 
   try {
@@ -91,6 +92,37 @@ export async function POST(request: NextRequest) {
         )
       }
     }
+
+    // Reconciliation: disable cached products that no longer exist in
+    // Printify (deleted there) so ghosts can't be bought. Skipped if the
+    // Printify fetch returned nothing (likely an API hiccup, not a purge).
+    if (rawProducts.length > 0) {
+      const liveIds = new Set(rawProducts.map((p) => String(p.id)))
+      const { data: cached, error: cacheError } = await db
+        .from('products')
+        .select('printify_id')
+        .eq('is_enabled', true)
+
+      if (!cacheError && cached) {
+        const orphanIds = cached
+          .map((c) => String(c.printify_id))
+          .filter((id) => !liveIds.has(id))
+
+        if (orphanIds.length > 0) {
+          const { error: disableError } = await db
+            .from('products')
+            .update({ is_enabled: false, updated_at: new Date().toISOString() })
+            .in('printify_id', orphanIds)
+
+          if (disableError) {
+            errors.push(`Orphan disable failed: ${disableError.message}`)
+          } else {
+            orphansDisabled = orphanIds.length
+            console.log(`[sync-products] Disabled ${orphanIds.length} orphaned product(s):`, orphanIds)
+          }
+        }
+      }
+    }
   } catch (err) {
     return NextResponse.json(
       {
@@ -100,5 +132,5 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  return NextResponse.json({ synced, errors })
+  return NextResponse.json({ synced, orphansDisabled, errors })
 }

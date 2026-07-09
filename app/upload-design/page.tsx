@@ -116,19 +116,13 @@ export default function UploadDesignPage() {
     setErrorMsg('')
 
     try {
-      // Read secret from session cookie
-      const resolvedSecret = document.cookie
-        .split('; ')
-        .find(r => r.startsWith('hs_session='))
-        ?.split('=')[1] ?? ''
-
-      if (!resolvedSecret) throw new Error('Session expired — please sign in again')
+      // Auth is handled by the httpOnly session cookie — sent automatically
+      // with same-origin requests. Client JS never touches secrets.
 
       // Step 1: upload image to Printify, get imageId
       const compressed = await compressImage(file)
       const formData = new FormData()
       formData.append('image', compressed)
-      formData.append('secret', resolvedSecret)
       if (title.trim()) formData.append('title', title.trim())
 
       const imgRes = await fetch('/api/auto-product/upload-image', { method: 'POST', body: formData })
@@ -146,7 +140,7 @@ export default function UploadDesignPage() {
           const res = await fetch('/api/auto-product/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ secret: resolvedSecret, imageId, title: resolvedTitle, placementKey }),
+            body: JSON.stringify({ imageId, title: resolvedTitle, placementKey }),
           })
           const text = await res.text()
           let data: PlacementOption & { ok?: boolean; error?: string }

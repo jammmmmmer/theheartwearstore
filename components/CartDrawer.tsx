@@ -1,19 +1,28 @@
 'use client'
 
 import { useCartStore } from '@/lib/cart-store'
-import { formatPrice } from '@/lib/utils'
 import { X, Trash2, ShoppingBag } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
 import { useTranslation } from '@/lib/language-context'
+import { useCurrency } from '@/lib/currency-context'
+import { priceInCurrency, formatMoney } from '@/lib/currency'
 
 export default function CartDrawer() {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, totalPrice, clearCart } = useCartStore()
+  const { items, isOpen, closeCart, removeItem, updateQuantity, clearCart } = useCartStore()
   const { tr } = useTranslation()
+  const { currency, display } = useCurrency()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const subtotal = totalPrice()
+  // Convert unit price first, then multiply — matches exactly what Stripe
+  // charges (unit_amount × quantity), avoiding off-by-a-cent line totals.
+  const lineTotal = (unitCad: number, qty: number) =>
+    formatMoney(priceInCurrency(unitCad, currency) * qty, currency)
+  const subtotalCents = items.reduce(
+    (sum, i) => sum + priceInCurrency(i.price, currency) * i.quantity,
+    0
+  )
 
   async function handleCheckout() {
     if (items.length === 0) return
@@ -23,7 +32,7 @@ export default function CartDrawer() {
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ items, currency }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -99,8 +108,8 @@ export default function CartDrawer() {
                   style={{ borderBottom: '1px solid var(--hw-border)' }}
                 >
                   <div
-                    className="relative overflow-hidden flex-shrink-0"
-                    style={{ width: '72px', height: '72px', background: 'var(--hw-surface)', border: '1px solid var(--hw-border)' }}
+                    className="relative overflow-hidden flex-shrink-0 hw-stage"
+                    style={{ width: '72px', height: '72px', borderRadius: '12px', border: '1px solid var(--hw-border)' }}
                   >
                     {item.image ? (
                       <Image src={item.image} alt={item.title} fill sizes="72px" className="object-cover" />
@@ -119,7 +128,7 @@ export default function CartDrawer() {
                       {item.variant_title}
                     </p>
                     <p style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.72rem', color: 'var(--hw-accent2)' }}>
-                      {formatPrice(item.price)}
+                      {display(item.price)}
                     </p>
 
                     <div className="flex items-center gap-3 mt-3">
@@ -149,7 +158,7 @@ export default function CartDrawer() {
                   </div>
 
                   <p style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.72rem', color: 'var(--hw-accent2)', flexShrink: 0, paddingTop: '2px' }}>
-                    {formatPrice(item.price * item.quantity)}
+                    {lineTotal(item.price, item.quantity)}
                   </p>
                 </li>
               ))}
@@ -166,7 +175,7 @@ export default function CartDrawer() {
             )}
             <div className="flex items-center justify-between">
               <span style={{ fontSize: '0.85rem', color: 'var(--hw-muted)' }}>{tr.cart_subtotal}</span>
-              <span style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.85rem', color: 'var(--hw-white)' }}>{formatPrice(subtotal)}</span>
+              <span style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.85rem', color: 'var(--hw-white)' }}>{formatMoney(subtotalCents, currency)}</span>
             </div>
             <p style={{ fontFamily: 'var(--font-space-mono)', fontSize: '0.58rem', letterSpacing: '0.08em', color: 'var(--hw-muted)' }}>
               {tr.cart_shipping_note}
@@ -179,7 +188,7 @@ export default function CartDrawer() {
             >
               {isLoading ? (
                 <>
-                  <span style={{ width: '14px', height: '14px', border: '2px solid rgba(10,10,10,0.3)', borderTopColor: 'var(--hw-black)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                  <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
                   {tr.product_redirecting}
                 </>
               ) : tr.cart_checkout}

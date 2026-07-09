@@ -26,10 +26,11 @@ async function getAllProducts(): Promise<Product[]> {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     )
 
+    // Note: .eq('is_enabled', true) has a Supabase JS boolean coercion bug
+    // that silently returns 0 rows. Filter in JS instead.
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('is_enabled', true)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -37,7 +38,7 @@ async function getAllProducts(): Promise<Product[]> {
       return []
     }
 
-    return (data as Product[]) ?? []
+    return (data as Product[]).filter(p => p.is_enabled !== false)
   } catch (err) {
     console.error('Failed to fetch products:', err)
     return []

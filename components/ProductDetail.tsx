@@ -1,25 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
-import { Product, PrintifyVariant, PrintifyOption } from '@/types'
-import { formatPrice } from '@/lib/utils'
+// Note: using plain <img> tags instead of Next.js <Image> for Printify CDN URLs.
+// Next.js Image routes through the server-side optimizer which fails in Docker dev.
+// Plain <img> loads directly from the browser.
+import { Product, PrintifyVariant, PrintifyOption, Artist } from '@/types'
 import { useCartStore } from '@/lib/cart-store'
 import { ShoppingBag, Check } from 'lucide-react'
 import BuyNowButton from '@/components/BuyNowButton'
 import WalletPayButton from '@/components/WalletPayButton'
+import SizeChart from '@/components/SizeChart'
 import { useTranslation } from '@/lib/language-context'
+import { useCurrency } from '@/lib/currency-context'
 
 interface ProductDetailProps {
   product: Product
+  artist?: Artist | null
 }
 
-export default function ProductDetail({ product }: ProductDetailProps) {
+export default function ProductDetail({ product, artist }: ProductDetailProps) {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({})
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [addedToCart, setAddedToCart] = useState(false)
   const { addItem, openCart } = useCartStore()
   const { tr } = useTranslation()
+  const { display } = useCurrency()
 
   // Find the variant that matches all selected options
   const selectedVariant: PrintifyVariant | undefined = product.variants.find((v) => {
@@ -95,15 +100,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         {/* Images */}
         <div className="flex flex-col gap-4">
           {/* Main image */}
-          <div className="aspect-square bg-stone-900 relative overflow-hidden">
+          <div className="aspect-square hw-stage relative overflow-hidden rounded-card shadow-card">
             {activeImageSrc ? (
-              <Image
+              <img
                 src={activeImageSrc}
                 alt={product.title}
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-                priority
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  padding: '4%',
+                }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-stone-900">
@@ -119,19 +128,23 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 <button
                   key={idx}
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`w-16 h-16 flex-shrink-0 relative overflow-hidden border-2 transition-colors bg-stone-900 ${
+                  className={`w-16 h-16 flex-shrink-0 relative overflow-hidden rounded-xl border-2 transition-colors hw-stage ${
                     activeImageIndex === idx
-                      ? 'border-sage-500'
+                      ? 'border-stone-50'
                       : 'border-stone-800 hover:border-stone-600'
                   }`}
                   aria-label={`View image ${idx + 1}`}
                 >
-                  <Image
+                  <img
                     src={img.src}
                     alt={`${product.title} view ${idx + 1}`}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
                   />
                 </button>
               ))}
@@ -147,7 +160,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               {product.tags.slice(0, 4).map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs uppercase tracking-widest text-stone-400 bg-stone-800 px-2 py-1"
+                  className="text-xs text-stone-400 bg-stone-900 px-3 py-1 rounded-full font-medium"
                 >
                   {tag}
                 </span>
@@ -159,10 +172,21 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             <h1 className="font-playfair text-3xl sm:text-4xl text-stone-50 leading-snug">
               {product.title}
             </h1>
-            <p className="text-sage-400 text-xl mt-2">
+            {artist && (
+              <p className="text-xs uppercase tracking-widest text-stone-500 mt-2">
+                {tr.product_design_by}{' '}
+                <a
+                  href={`/artists/${artist.slug}`}
+                  className="text-sage-500 hover:text-sage-400 transition-colors normal-case tracking-normal"
+                >
+                  {artist.display_name}
+                </a>
+              </p>
+            )}
+            <p className="text-hw-accent2 text-xl mt-2 font-semibold" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {selectedVariant
-                ? formatPrice(selectedVariant.price)
-                : `${tr.product_from} ${formatPrice(product.price_from)}`}
+                ? display(selectedVariant.price)
+                : `${tr.product_from} ${display(product.price_from)}`}
             </p>
           </div>
 
@@ -194,12 +218,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                       key={value.id}
                       onClick={() => available && handleSelectOption(option.name, value.id)}
                       disabled={!available}
-                      className={`px-4 py-2.5 min-h-[44px] text-sm border transition-colors ${
+                      className={`px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-control border transition-all ${
                         selected
-                          ? 'border-sage-500 bg-stone-800 text-stone-50'
+                          ? 'border-stone-50 bg-stone-50 text-stone-950 shadow-card'
                           : available
-                          ? 'border-stone-700 bg-stone-900 text-stone-300 hover:border-stone-500'
-                          : 'border-stone-800 bg-stone-900 text-stone-600 cursor-not-allowed opacity-30 line-through'
+                          ? 'border-stone-700 bg-stone-950 text-stone-200 hover:border-stone-500'
+                          : 'border-stone-800 bg-stone-950 text-stone-600 cursor-not-allowed opacity-40 line-through'
                       }`}
                       aria-pressed={selected}
                       aria-label={`${option.name}: ${value.title}${!available ? ' (unavailable)' : ''}`}
@@ -227,12 +251,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             <button
               onClick={handleAddToCart}
               disabled={!canAddToCart}
-              className={`w-full flex items-center justify-center gap-2 py-4 text-sm tracking-widest uppercase transition-all duration-200 ${
+              className={`w-full flex items-center justify-center gap-2 py-4 text-[15px] font-semibold rounded-control transition-all duration-200 ${
                 addedToCart
-                  ? 'bg-sage-700 text-white'
+                  ? 'bg-[#3f5a3f] text-white'
                   : canAddToCart
-                  ? 'bg-sage-600 text-white hover:bg-sage-500'
-                  : 'bg-stone-800 text-stone-600 cursor-not-allowed'
+                  ? 'bg-[#d64533] text-white hover:bg-[#b23222]'
+                  : 'bg-stone-900 text-stone-600 cursor-not-allowed'
               }`}
             >
               {addedToCart ? (
@@ -262,15 +286,24 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             ) : (
               <button
                 disabled
-                className="w-full flex items-center justify-center gap-2 py-4 text-sm tracking-widest uppercase border border-stone-700 text-stone-300 hover:border-stone-500 cursor-not-allowed opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-4 text-sm font-medium rounded-control border border-stone-700 text-stone-400 cursor-not-allowed opacity-60"
               >
                 {tr.product_buy_now}
               </button>
             )}
           </div>
 
+          {/* Size chart */}
+          <SizeChart
+            sizes={
+              product.options
+                .find((o: PrintifyOption) => o.name.toLowerCase() === 'size')
+                ?.values.map((v) => v.title) ?? []
+            }
+          />
+
           {/* Trust notes */}
-          <ul className="text-xs text-stone-600 space-y-1.5 pt-2 border-t border-stone-800">
+          <ul className="text-xs text-stone-400 space-y-1.5 pt-2 border-t border-stone-800">
             <li>{tr.product_trust_1}</li>
             <li>{tr.product_trust_2}</li>
             <li>{tr.product_trust_3}</li>

@@ -22,18 +22,19 @@ async function getFeaturedProducts(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('is_enabled', true)
-      .order('created_at', { ascending: false })
-      .limit(4)
+      .order('updated_at', { ascending: false })
+      .limit(20)
 
     if (error) {
-      console.error('Error fetching featured products:', error.message)
+      console.error('[homepage] Supabase error:', error.message)
       return []
     }
 
-    return (data as Product[]) ?? []
+    // Filter enabled products in JS — avoids boolean coercion quirks in the JS client
+    const enabled = (data as Product[]).filter(p => p.is_enabled !== false).slice(0, 8)
+    return enabled
   } catch (err) {
-    console.error('Failed to fetch featured products:', err)
+    console.error('[homepage] Fetch failed:', err)
     return []
   }
 }

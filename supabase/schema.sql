@@ -23,6 +23,9 @@ create table if not exists orders (
   stripe_session_id text unique,
   stripe_payment_intent_id text unique,
   printify_order_id text,
+  tracking_number text,
+  tracking_carrier text,
+  tracking_url text,
   customer_email text,
   customer_name text,
   shipping_address jsonb,
@@ -91,4 +94,114 @@ alter table pending_products enable row level security;
 
 create policy "Pending products are private"
   on pending_products for all
+  using (false);
+
+-- Catalog configuration: which garments/providers/variants new products use.
+-- Replaces the hardcoded blueprint/variant constants; refreshed from
+-- Printify's catalog API via /api/admin/catalog-sync.
+create table if not exists catalog_items (
+  id uuid primary key default gen_random_uuid(),
+  blueprint_id integer not null,
+  print_provider_id integer not null,
+  label text not null,
+  price integer not null,                       -- retail price in CAD cents
+  enabled_variant_ids integer[] not null default '{}',
+  all_variant_ids integer[] not null default '{}',
+  variants jsonb,                               -- cached Printify catalog variants
+  variants_synced_at timestamptz,
+  shipping jsonb,                               -- cached Printify shipping profiles (USD cents)
+  shipping_synced_at timestamptz,
+  is_default boolean not null default false,
+  is_enabled boolean not null default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (blueprint_id, print_provider_id)
+);
+
+create trigger catalog_items_updated_at
+  before update on catalog_items
+  for each row execute function update_updated_at();
+
+alter table catalog_items enable row level security;
+
+create policy "Catalog items are private"
+  on catalog_items for all
+  using (false);
+
+-- ── Artist platform (P3) ──────────────────────────────────────────────
+
+-- Artist profiles, 1:1 with Supabase Auth users
+create table if not exists artists (
+  id uuid primary key references auth.users(id) on delete cascade,
+  slug text unique not null,
+  display_name text not null,
+  bio text not null default '',
+  commission_pct numeric not null default 10,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create trigger artists_updated_at
+  before update on artists
+  for each row execute function update_updated_at();
+
+alter table artists enable row level security;
+
+create policy "Artist profiles are publicly readable"
+  on artists for select
+  using (true);
+
+create policy "Artists can insert own profile"
+  on artists for insert
+  with check (auth.uid() = id);
+
+create policy "Artists can update own profile"
+  on artists for update
+  using (auth.uid() = id);
+
+-- Attribution on live products and pending submissions
+alter table products add column if not exists artist_id uuid references artists(id);
+alter table pending_products add column if not exists artist_id uuid;
+
+create index if not exists products_artist_idx on products(artist_id);
+
+-- Earnings ledger: one row per (order, product) with an attributed artist
+create table if not exists artist_earnings (
+  id uuid primary key default gen_random_uuid(),
+  artist_id uuid not null references artists(id),
+  order_id uuid not null references orders(id),
+  printify_product_id text not null,
+  quantity integer not null default 1,
+  item_amount integer not null,        -- item revenue in order currency (cents)
+  commission_pct numeric not null,
+  commission_amount integer not null,  -- cents, in order currency
+  currency text not null default 'cad',
+  status text not null default 'accrued',  -- 'accrued' | 'paid'
+  created_at timestamptz default now(),
+  unique (order_id, printify_product_id)
+);
+
+create index if not exists artist_earnings_artist_idx on artist_earnings(artist_id);
+
+alter table artist_earnings enable row level security;
+
+create policy "Artists read own earnings"
+  on artist_earnings for select
+  using (auth.uid() = artist_id);
+
+-- Community votes on pending artist submissions
+create table if not exists design_votes (
+  id uuid primary key default gen_random_uuid(),
+  pending_product_id uuid not null references pending_products(id) on delete cascade,
+  voter_fingerprint text not null,
+  created_at timestamptz default now(),
+  unique (pending_product_id, voter_fingerprint)
+);
+
+create index if not exists design_votes_pending_idx on design_votes(pending_product_id);
+
+alter table design_votes enable row level security;
+
+create policy "Votes are private"
+  on design_votes for all
   using (false);

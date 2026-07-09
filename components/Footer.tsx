@@ -12,9 +12,12 @@ export default function Footer() {
     {
       heading: tr.footer_explore,
       links: [
-        { href: '/shop',    label: tr.nav_shop },
-        { href: '/about',   label: tr.nav_about },
-        { href: '/contact', label: tr.footer_contact },
+        { href: '/shop',        label: tr.nav_shop },
+        { href: '/vote',        label: tr.footer_vote },
+        { href: '/artist/join', label: tr.footer_artists },
+        { href: '/about',       label: tr.nav_about },
+        { href: '/track',       label: tr.footer_track },
+        { href: '/contact',     label: tr.footer_contact },
       ],
     },
     {
