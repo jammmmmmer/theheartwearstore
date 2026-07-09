@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingBag, Menu, X } from 'lucide-react'
+import { ShoppingBag, Menu, X, User } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { useState, useEffect } from 'react'
 import { useTranslation } from '@/lib/language-context'
@@ -95,6 +95,17 @@ export default function Header() {
               <CurrencyToggle />
               <LanguageToggle />
             </div>
+
+            {/* Account / Sign in */}
+            <Link
+              href="/account"
+              className="flex items-center transition-colors"
+              style={{ color: 'var(--hw-mid)' }}
+              aria-label={tr.nav_account}
+              title={tr.nav_account}
+            >
+              <User size={20} strokeWidth={1.5} />
+            </Link>
 
             {/* Cart */}
             <button

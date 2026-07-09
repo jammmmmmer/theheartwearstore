@@ -47,6 +47,28 @@ export async function getArtistFromRequest(
   }
 }
 
+/**
+ * Lean auth check for any signed-in customer (no artist profile required).
+ * Verifies the Supabase Auth Bearer token and returns the user's id + email.
+ */
+export async function getAuthUser(
+  request: NextRequest
+): Promise<{ userId: string; email: string } | null> {
+  const auth = request.headers.get('authorization')
+  if (!auth?.startsWith('Bearer ')) return null
+  const token = auth.slice('Bearer '.length).trim()
+  if (!token) return null
+
+  try {
+    const { data, error } = await supabaseAdmin().auth.getUser(token)
+    if (error || !data?.user) return null
+    return { userId: data.user.id, email: data.user.email ?? '' }
+  } catch (err) {
+    console.warn('[auth] Token verification failed:', err)
+    return null
+  }
+}
+
 /** URL-safe slug from a display name, e.g. "Marie-Ève D." → "marie-eve-d" */
 export function slugifyName(name: string): string {
   return name
