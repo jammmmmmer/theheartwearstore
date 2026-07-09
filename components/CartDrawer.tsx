@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useTranslation } from '@/lib/language-context'
 import { useCurrency } from '@/lib/currency-context'
 import { priceInCurrency, formatMoney } from '@/lib/currency'
+import { supabase } from '@/lib/supabase'
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, clearCart } = useCartStore()
@@ -29,10 +30,15 @@ export default function CartDrawer() {
     setIsLoading(true)
     setError(null)
     try {
+      // Carry the signed-in customer's email into checkout so the order links
+      // back to their account (Stripe prefills the email field with it).
+      const { data: sessionData } = await supabase.auth.getSession()
+      const customerEmail = sessionData.session?.user.email
+
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, currency }),
+        body: JSON.stringify({ items, currency, customerEmail }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))

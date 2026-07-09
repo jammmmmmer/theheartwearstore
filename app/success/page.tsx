@@ -1,15 +1,20 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/cart-store'
 import { useTranslation } from '@/lib/language-context'
+import { supabase } from '@/lib/supabase'
 
 export default function SuccessPage() {
   const { clearCart } = useCartStore()
   const { tr } = useTranslation()
+  const [signedIn, setSignedIn] = useState<boolean | null>(null)
 
   useEffect(() => { clearCart() }, [clearCart])
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session))
+  }, [])
 
   return (
     <div style={{ background: 'var(--hw-black)', minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
@@ -42,6 +47,26 @@ export default function SuccessPage() {
             ))}
           </ul>
         </div>
+
+        {/* Account prompt — track order / create account */}
+        {signedIn !== null && (
+          <div style={{ border: '1px solid var(--hw-border)', padding: '20px 24px', marginBottom: '32px' }}>
+            {signedIn ? (
+              <Link href="/account" style={{ color: 'var(--hw-accent)', fontSize: '0.85rem', textDecoration: 'none' }}>
+                {tr.success_track_member} →
+              </Link>
+            ) : (
+              <>
+                <p style={{ fontSize: '0.85rem', color: 'var(--hw-light)', marginBottom: '14px', lineHeight: 1.6 }}>
+                  {tr.success_track_guest}
+                </p>
+                <Link href="/account" className="btn-outline" style={{ display: 'inline-block' }}>
+                  {tr.success_track_cta}
+                </Link>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/shop" className="btn-primary">{tr.success_keep_shopping}</Link>

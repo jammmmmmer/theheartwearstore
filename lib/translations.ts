@@ -211,6 +211,9 @@ export const t = {
     success_next_4: "You'll get a shipping notification by email",
     success_keep_shopping: 'Keep Shopping',
     success_home: 'Back to Home',
+    success_track_guest: 'Create an account with the email you used at checkout to track this order and see future ones.',
+    success_track_cta: 'Create an account',
+    success_track_member: 'View this order in your account',
     success_quote: '"Made with love. Printed with purpose."',
 
     // Cancel
@@ -500,6 +503,9 @@ export const t = {
     success_next_4: "Vous recevrez une notification d'expédition par courriel",
     success_keep_shopping: 'Continuer les achats',
     success_home: "Retour à l'accueil",
+    success_track_guest: 'Créez un compte avec le courriel utilisé à la caisse pour suivre cette commande et voir les prochaines.',
+    success_track_cta: 'Créer un compte',
+    success_track_member: 'Voir cette commande dans votre compte',
     success_quote: '« Fait avec amour. Imprimé avec intention. »',
 
     // Cancel
