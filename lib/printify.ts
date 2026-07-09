@@ -145,6 +145,21 @@ export async function publishProduct(shopId: string, productId: string): Promise
   }
 }
 
+/** Unpublish a product (removes the store-connection lock so it can be deleted). Best-effort. */
+export async function unpublishProduct(shopId: string, productId: string): Promise<void> {
+  try {
+    const res = await fetch(
+      `${PRINTIFY_BASE_URL}/shops/${shopId}/products/${productId}/unpublish.json`,
+      { method: 'POST', headers: getHeaders() }
+    )
+    if (!res.ok && res.status !== 404) {
+      console.warn(`[printify] unpublish ${productId} non-fatal: ${res.status} ${await res.text()}`)
+    }
+  } catch (e) {
+    console.warn(`[printify] unpublish ${productId} threw (non-fatal):`, e)
+  }
+}
+
 export async function deleteProduct(shopId: string, productId: string): Promise<void> {
   const res = await fetch(
     `${PRINTIFY_BASE_URL}/shops/${shopId}/products/${productId}.json`,

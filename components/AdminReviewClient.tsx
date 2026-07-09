@@ -29,6 +29,41 @@ export default function AdminReviewClient({
 }) {
   const [states, setStates] = useState<Record<string, CardState>>({})
   const [labels, setLabels] = useState<Record<string, string>>({})
+  const [purging, setPurging] = useState(false)
+  const [purgeMsg, setPurgeMsg] = useState('')
+
+  // Permanently delete EVERY product from Printify + the shop, in batches.
+  async function purgeCatalog() {
+    if (
+      window.prompt(
+        'This permanently deletes ALL products from Printify AND the shop. This cannot be undone. Type PURGE to confirm.'
+      ) !== 'PURGE'
+    ) return
+    setPurging(true)
+    setPurgeMsg('Starting…')
+    let total = 0
+    try {
+      for (let i = 0; i < 200; i++) {
+        const res = await fetch('/api/admin/purge-catalog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: 'PURGE' }),
+        })
+        const d = await res.json()
+        if (!res.ok) throw new Error(d.error || `Error ${res.status}`)
+        total += d.deleted ?? 0
+        setPurgeMsg(`Deleted ${total}… ${d.remaining ?? 0} remaining`)
+        if ((d.remaining ?? 0) <= 0) {
+          setPurgeMsg(`Done — deleted ${total} product(s). Reload the page to refresh.`)
+          break
+        }
+      }
+    } catch (e) {
+      setPurgeMsg(`Failed: ${e instanceof Error ? e.message : 'error'}`)
+    } finally {
+      setPurging(false)
+    }
+  }
 
   async function act(
     id: string,
@@ -173,6 +208,23 @@ export default function AdminReviewClient({
               })}
             </div>
           )}
+        </section>
+
+        {/* Danger zone — full catalogue purge */}
+        <section className="mt-16 border border-red-900/50 rounded-card p-5">
+          <h2 className="text-xs tracking-[0.3em] uppercase text-red-400 mb-2">Danger zone</h2>
+          <p className="text-stone-500 text-xs mb-4 max-w-lg leading-relaxed">
+            Permanently delete <strong>every</strong> product from Printify and the shop — including the
+            store-connected ones the Printify dashboard won&apos;t let you remove. This cannot be undone.
+          </p>
+          <button
+            onClick={purgeCatalog}
+            disabled={purging}
+            className="bg-red-900/40 border border-red-800 text-red-200 hover:bg-red-900/60 px-5 py-2.5 text-[10px] tracking-[0.3em] uppercase transition-colors disabled:opacity-50 rounded"
+          >
+            {purging ? 'Purging…' : 'Purge entire catalogue'}
+          </button>
+          {purgeMsg && <p className="text-stone-400 text-xs mt-3">{purgeMsg}</p>}
         </section>
       </div>
     </main>
