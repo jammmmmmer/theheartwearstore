@@ -16,7 +16,14 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   // Suppress cart badge on SSR to avoid hydration mismatch with persisted Zustand state
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  // Admin links appear only when an admin is signed in (hs_user cookie). The
+  // pages themselves are still protected server-side by proxy.ts, so this only
+  // controls visibility of the links, not access.
+  const [isAdmin, setIsAdmin] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+    setIsAdmin(document.cookie.split('; ').some(r => r.startsWith('hs_user=') && r.length > 'hs_user='.length))
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 hw-glass">
@@ -24,7 +31,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-14">
 
           {/* Wordmark */}
-          <Link href="/upload-design" className="flex items-center" aria-label="The Heartwear Store — Design your tee">
+          <Link href="/" className="flex items-center" aria-label="The Heartwear Store — Home">
             <span
               style={{
                 fontFamily: 'var(--font-display)',
@@ -42,9 +49,10 @@ export default function Header() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             {[
-              { href: '/',      label: tr.nav_home },
-              { href: '/shop',  label: tr.nav_shop },
-              { href: '/about', label: tr.nav_about },
+              { href: '/',       label: tr.nav_home },
+              { href: '/shop',   label: tr.nav_shop },
+              { href: '/create', label: tr.nav_customize },
+              { href: '/about',  label: tr.nav_about },
             ].map(({ href, label }) => (
               <Link
                 key={href}
@@ -64,6 +72,21 @@ export default function Header() {
                 {label}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                href="/admin/review"
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--hw-accent)',
+                  textDecoration: 'none',
+                }}
+              >
+                {tr.nav_admin}
+              </Link>
+            )}
           </nav>
 
           {/* Right side */}
@@ -111,9 +134,10 @@ export default function Header() {
           style={{ background: 'var(--hw-off)', borderColor: 'var(--hw-border)' }}
         >
           {[
-            { href: '/',      label: tr.nav_home },
-            { href: '/shop',  label: tr.nav_shop },
-            { href: '/about', label: tr.nav_about },
+            { href: '/',       label: tr.nav_home },
+            { href: '/shop',   label: tr.nav_shop },
+            { href: '/create', label: tr.nav_customize },
+            { href: '/about',  label: tr.nav_about },
           ].map(({ href, label }) => (
             <Link
               key={href}
@@ -130,6 +154,21 @@ export default function Header() {
               {label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/admin/review"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                fontSize: '1rem',
+                fontWeight: 500,
+                letterSpacing: '-0.01em',
+                color: 'var(--hw-accent)',
+                textDecoration: 'none',
+              }}
+            >
+              {tr.nav_admin}
+            </Link>
+          )}
           <div className="pt-2 border-t flex items-center gap-4" style={{ borderColor: 'var(--hw-border)' }}>
             <CurrencyToggle />
             <LanguageToggle />

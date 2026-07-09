@@ -41,7 +41,7 @@ async function getRelatedProducts(current: Product): Promise<Product[]> {
 
     const currentTags = new Set((current.tags ?? []).map((t) => t.toLowerCase()))
     return (data as Product[])
-      .filter((p) => p.is_enabled !== false)
+      .filter((p) => p.is_enabled !== false && p.is_custom !== true)
       .map((p) => ({
         product: p,
         score: (p.tags ?? []).filter((t) => currentTags.has(t.toLowerCase())).length,

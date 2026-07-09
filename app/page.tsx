@@ -31,7 +31,9 @@ async function getFeaturedProducts(): Promise<Product[]> {
     }
 
     // Filter enabled products in JS — avoids boolean coercion quirks in the JS client
-    const enabled = (data as Product[]).filter(p => p.is_enabled !== false).slice(0, 8)
+    const enabled = (data as Product[])
+      .filter(p => p.is_enabled !== false && p.is_custom !== true)
+      .slice(0, 8)
     return enabled
   } catch (err) {
     console.error('[homepage] Fetch failed:', err)
