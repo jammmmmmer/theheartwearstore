@@ -122,7 +122,7 @@ export default function HomePageClient({ products }: HomePageClientProps) {
               >
                 {tr.home_custom_body}
               </p>
-              <Link href="/upload-design" className="btn-accent">
+              <Link href="/create" className="btn-accent">
                 <Upload size={15} />
                 {tr.home_custom_cta}
               </Link>
