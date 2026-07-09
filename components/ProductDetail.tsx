@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 // Note: using plain <img> tags instead of Next.js <Image> for Printify CDN URLs.
 // Next.js Image routes through the server-side optimizer which fails in Docker dev.
 // Plain <img> loads directly from the browser.
-import { Product, PrintifyVariant, PrintifyOption, Artist } from '@/types'
+import { Product, PrintifyVariant, PrintifyOption, PrintifyImage, Artist } from '@/types'
 import { useCartStore } from '@/lib/cart-store'
 import { ShoppingBag, Check } from 'lucide-react'
 import BuyNowButton from '@/components/BuyNowButton'
@@ -18,6 +18,16 @@ interface ProductDetailProps {
   artist?: Artist | null
 }
 
+// Printify's Bella+Canvas mockup scenes for this tee: person-1 & person-3 are
+// female models, person-2 & person-4 are male. The store leads with male-model
+// lifestyle shots, so the female-model scenes are hidden from the gallery.
+// (Flat shots — front/back/sleeves/folded — are always kept.)
+const HIDDEN_MODEL_SCENES = ['person-1', 'person-3']
+function isHiddenModelShot(src: string): boolean {
+  const label = src.match(/camera_label=([^&]+)/)?.[1] ?? ''
+  return HIDDEN_MODEL_SCENES.some((scene) => label.startsWith(scene))
+}
+
 export default function ProductDetail({ product, artist }: ProductDetailProps) {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({})
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -25,6 +35,14 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
   const { addItem, openCart } = useCartStore()
   const { tr } = useTranslation()
   const { display } = useCurrency()
+
+  // The image-bearing option is the colour (the non-size option; Printify names it "Colors").
+  const colorOption = product.options.find(
+    (o: PrintifyOption) => !o.name.toLowerCase().startsWith('size')
+  )
+  const colorOptionIndex = colorOption
+    ? product.options.findIndex((o: PrintifyOption) => o.name === colorOption.name)
+    : -1
 
   // Find the variant that matches all selected options
   const selectedVariant: PrintifyVariant | undefined = product.variants.find((v) => {
@@ -57,6 +75,10 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
   function handleSelectOption(optionName: string, valueId: number) {
     setSelectedOptions((prev) => ({ ...prev, [optionName]: valueId }))
     setAddedToCart(false)
+    // Picking a colour swaps the gallery to that colour's mockups (front shot first).
+    if (colorOption && optionName === colorOption.name) {
+      setActiveImageIndex(0)
+    }
   }
 
   function handleAddToCart() {
@@ -91,8 +113,37 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
 
   const canAddToCart = allOptionsSelected && selectedVariant !== undefined
 
-  const displayImages = product.images.length > 0 ? product.images : []
-  const activeImageSrc = displayImages[activeImageIndex]?.src ?? ''
+  // Variant ids belonging to the currently selected colour (all of its sizes).
+  const selectedColorId = colorOption ? selectedOptions[colorOption.name] : undefined
+  const selectedColorVariantIds = useMemo(() => {
+    if (selectedColorId === undefined || colorOptionIndex === -1) return null
+    return new Set(
+      product.variants
+        .filter((v) => v.options[colorOptionIndex] === selectedColorId)
+        .map((v) => v.id)
+    )
+  }, [product.variants, colorOptionIndex, selectedColorId])
+
+  // Once a colour is chosen, show only that colour's mockups (front shot first).
+  // Falls back to all images when no colour is selected or none are tagged.
+  const displayImages = useMemo(() => {
+    const all = product.images.filter((img) => !isHiddenModelShot(img.src))
+    if (!selectedColorVariantIds) return all
+    const matched = all.filter((img: PrintifyImage) =>
+      img.variant_ids.some((id) => selectedColorVariantIds.has(id))
+    )
+    if (matched.length === 0) return all
+    const rank = (img: PrintifyImage) => {
+      if (img.position === 'front') return 0
+      if (img.position === 'other') return img.is_default ? 1 : 2
+      if (img.position === 'back') return 3
+      return 4
+    }
+    return [...matched].sort((a, b) => rank(a) - rank(b))
+  }, [product.images, selectedColorVariantIds])
+
+  const activeImageSrc =
+    displayImages[activeImageIndex]?.src ?? displayImages[0]?.src ?? ''
 
   return (
     <div className="bg-stone-950 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
@@ -196,6 +247,18 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
               className="text-stone-400 text-sm leading-relaxed prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: product.description }}
             />
+          )}
+
+          {/* Custom-upload final-sale notice */}
+          {product.is_custom && (
+            <div className="border border-hw-accent2/40 bg-hw-accent2/5 rounded-control px-4 py-3">
+              <p className="text-[10px] uppercase tracking-widest text-hw-accent2 font-semibold">
+                {tr.custom_badge}
+              </p>
+              <p className="mt-1 text-xs text-stone-300 leading-relaxed">
+                {tr.custom_final_sale}
+              </p>
+            </div>
           )}
 
           {/* Option selectors */}

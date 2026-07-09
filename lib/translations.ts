@@ -6,8 +6,11 @@ export const t = {
     // Nav
     nav_home: 'Home',
     nav_shop: 'Shop',
+    nav_customize: 'Customize',
     nav_about: 'About',
     nav_cart: 'Cart',
+    custom_badge: 'Custom design',
+    custom_final_sale: 'Made to order just for you. Final sale — no returns or exchanges except for manufacturing defects.',
     nav_open_cart: 'Open cart',
     nav_items: 'items',
     nav_item: 'item',
@@ -274,8 +277,11 @@ export const t = {
     // Nav
     nav_home: 'Accueil',
     nav_shop: 'Boutique',
+    nav_customize: 'Personnaliser',
     nav_about: 'À propos',
     nav_cart: 'Panier',
+    custom_badge: 'Design personnalisé',
+    custom_final_sale: 'Fabriqué sur commande rien que pour vous. Vente finale — aucun retour ni échange, sauf en cas de défaut de fabrication.',
     nav_open_cart: 'Ouvrir le panier',
     nav_items: 'articles',
     nav_item: 'article',

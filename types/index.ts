@@ -32,6 +32,8 @@ export interface Product {
   price_from: number // lowest variant price in cents
   is_enabled: boolean
   artist_id?: string | null
+  /** True for public-uploaded custom tees — orderable by link but hidden from the shop collection. */
+  is_custom?: boolean
 }
 
 export interface Artist {

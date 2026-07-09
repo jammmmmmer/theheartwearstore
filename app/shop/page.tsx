@@ -38,7 +38,8 @@ async function getAllProducts(): Promise<Product[]> {
       return []
     }
 
-    return (data as Product[]).filter(p => p.is_enabled !== false)
+    // Exclude custom (public-uploaded) tees — they're orderable by link only.
+    return (data as Product[]).filter(p => p.is_enabled !== false && p.is_custom !== true)
   } catch (err) {
     console.error('Failed to fetch products:', err)
     return []

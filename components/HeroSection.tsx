@@ -91,6 +91,9 @@ export default function HeroSection({
           <Link href="/shop" onClick={handleShopNow} className="btn-accent">
             {tr.hero_cta_shop}
           </Link>
+          <Link href="/create" className="btn-outline">
+            {tr.nav_customize}
+          </Link>
           <Link href="/vote" className="btn-outline">
             {tr.footer_vote}
           </Link>
