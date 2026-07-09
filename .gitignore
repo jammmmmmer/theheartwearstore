@@ -39,3 +39,7 @@ next-env.d.ts
 
 # netlify
 .netlify
+
+# one-off maintenance/migration helper scripts (not app code)
+/apply-security-fixes.sh
+/reconcile-with-july8-work.sh
