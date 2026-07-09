@@ -89,8 +89,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${syne.variable} ${manrope.variable} ${fraunces.variable}`}
+      suppressHydrationWarning
     >
-      <body className="font-sans min-h-screen flex flex-col bg-stone-950 text-stone-50">
+      <body
+        className="font-sans min-h-screen flex flex-col bg-stone-950 text-stone-50"
+        suppressHydrationWarning
+      >
         <LanguageProvider>
           <CurrencyProvider>
             <Header />
