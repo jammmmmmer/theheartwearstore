@@ -153,6 +153,21 @@ export async function submitOrderToPrintify(
     return { submitted: false, reason: 'no line items' }
   }
 
+  // Regional split: US orders are fulfilled by the US provider's product
+  // (printify_id_us). Variant IDs are shared, so only the product_id changes.
+  const usProductByCa = new Map<string, string>()
+  if (address.country?.toUpperCase() === 'US') {
+    const caIds = Array.from(new Set(items.map((i) => i.printify_id)))
+    const { data: prods } = await db
+      .from('products')
+      .select('printify_id, printify_id_us')
+      .in('printify_id', caIds)
+    for (const p of prods ?? []) {
+      if (p.printify_id_us) usProductByCa.set(String(p.printify_id), String(p.printify_id_us))
+    }
+  }
+  const productIdFor = (printifyId: string) => usProductByCa.get(String(printifyId)) ?? printifyId
+
   const nameParts = customerName.trim().split(' ')
   const firstName = nameParts[0] ?? ''
   const lastName = nameParts.slice(1).join(' ') || firstName
@@ -162,7 +177,7 @@ export async function submitOrderToPrintify(
       external_id: orderId,
       label: `Heartwear Order #${orderId.slice(0, 8).toUpperCase()}`,
       line_items: items.map((item) => ({
-        product_id: item.printify_id,
+        product_id: productIdFor(item.printify_id),
         variant_id: item.variant_id,
         quantity: item.quantity,
       })),

@@ -61,15 +61,30 @@ export async function getShippingQuote(
   }
 
   try {
-    const { data, error } = await supabaseAdmin()
+    // Split fulfilment: quote the region's provider — US → Monster Digital (region 'US'),
+    // everything else → Print Geek (region 'CA'). Falls back to the default row.
+    const region = country.toUpperCase() === 'US' ? 'US' : 'CA'
+    const db = supabaseAdmin()
+    let { data } = await db
       .from('catalog_items')
       .select('shipping')
       .eq('is_enabled', true)
-      .order('is_default', { ascending: false })
+      .eq('region', region)
       .limit(1)
       .maybeSingle()
 
-    if (error || !data?.shipping) return flat
+    if (!data?.shipping) {
+      const fallback = await db
+        .from('catalog_items')
+        .select('shipping')
+        .eq('is_enabled', true)
+        .order('is_default', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      data = fallback.data
+    }
+
+    if (!data?.shipping) return flat
 
     const profile = pickProfile(data.shipping as CatalogShipping, country)
     if (!profile?.first_item?.cost) return flat
