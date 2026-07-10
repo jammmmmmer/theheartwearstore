@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getCatalogVariants, getCatalogShipping, CatalogShipping } from '@/lib/printify'
+import { isUploadAuthorized } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -35,6 +36,7 @@ async function syncOne(params: {
   price?: number
   enabledVariantIds?: number[]
   setDefault?: boolean
+  region?: string | null
 }): Promise<SyncOneResult> {
   const db = supabaseAdmin()
   const { blueprintId, printProviderId } = params
@@ -90,6 +92,7 @@ async function syncOne(params: {
       variants: catalog.variants,
       variants_synced_at: new Date().toISOString(),
       ...(shipping ? { shipping, shipping_synced_at: new Date().toISOString() } : {}),
+      ...(params.region !== undefined ? { region: params.region } : {}),
       is_default: params.setDefault ?? existing?.is_default ?? false,
       is_enabled: true,
     },
@@ -107,9 +110,8 @@ async function syncOne(params: {
 }
 
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-  if (!token || token !== process.env.SYNC_SECRET) {
+  // Admin session cookie OR Bearer SYNC_SECRET
+  if (!(await isUploadAuthorized(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -121,6 +123,7 @@ export async function POST(request: NextRequest) {
       price?: number
       enabledVariantIds?: number[]
       setDefault?: boolean
+      region?: string | null
     }
 
     // Single-item mode
@@ -132,6 +135,7 @@ export async function POST(request: NextRequest) {
         price: body.price,
         enabledVariantIds: body.enabledVariantIds,
         setDefault: body.setDefault,
+        region: body.region,
       })
       return NextResponse.json({ ok: true, results: [result] })
     }
