@@ -37,6 +37,9 @@ async function syncOne(params: {
   enabledVariantIds?: number[]
   setDefault?: boolean
   region?: string | null
+  styleKey?: string
+  styleLabel?: string
+  fit?: string
 }): Promise<SyncOneResult> {
   const db = supabaseAdmin()
   const { blueprintId, printProviderId } = params
@@ -93,6 +96,9 @@ async function syncOne(params: {
       variants_synced_at: new Date().toISOString(),
       ...(shipping ? { shipping, shipping_synced_at: new Date().toISOString() } : {}),
       ...(params.region !== undefined ? { region: params.region } : {}),
+      ...(params.styleKey !== undefined ? { style_key: params.styleKey } : {}),
+      ...(params.styleLabel !== undefined ? { style_label: params.styleLabel } : {}),
+      ...(params.fit !== undefined ? { fit: params.fit } : {}),
       is_default: params.setDefault ?? existing?.is_default ?? false,
       is_enabled: true,
     },
@@ -124,6 +130,9 @@ export async function POST(request: NextRequest) {
       enabledVariantIds?: number[]
       setDefault?: boolean
       region?: string | null
+      styleKey?: string
+      styleLabel?: string
+      fit?: string
     }
 
     // Single-item mode
@@ -136,6 +145,9 @@ export async function POST(request: NextRequest) {
         enabledVariantIds: body.enabledVariantIds,
         setDefault: body.setDefault,
         region: body.region,
+        styleKey: body.styleKey,
+        styleLabel: body.styleLabel,
+        fit: body.fit,
       })
       return NextResponse.json({ ok: true, results: [result] })
     }

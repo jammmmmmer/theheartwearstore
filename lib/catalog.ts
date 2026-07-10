@@ -98,20 +98,66 @@ export interface SplitCatalog {
  */
 export async function getSplitCatalog(): Promise<SplitCatalog> {
   try {
-    const { data } = await supabaseAdmin()
-      .from('catalog_items')
-      .select('blueprint_id, print_provider_id, label, price, enabled_variant_ids, all_variant_ids, region')
-      .eq('is_enabled', true)
-      .in('region', ['CA', 'US'])
-
-    const rows = (data ?? []) as (CatalogItem & { region: string })[]
-    const ca = rows.find((r) => r.region === 'CA')
-    const us = rows.find((r) => r.region === 'US')
-    if (ca && isUsable(ca)) {
-      return { ca, us: us && isUsable(us) ? us : null }
+    const styles = await getStyleCatalog()
+    const primary = styles.find((s) => s.isDefault) ?? styles[0]
+    if (primary?.ca && isUsable(primary.ca)) {
+      return { ca: primary.ca, us: primary.us && isUsable(primary.us) ? primary.us : null }
     }
   } catch (err) {
     console.warn('[catalog] Split lookup failed, using single default:', err)
   }
   return { ca: await getDefaultCatalogItem(), us: null }
+}
+
+/** One garment style (e.g. Unisex Classic) with its CA + US fulfilment rows. */
+export interface StyleGarment {
+  styleKey: string
+  styleLabel: string
+  /** 'unisex' | 'womens' | ... — drives the Fit selector on the product page. */
+  fit: string
+  isDefault: boolean
+  /** Canada fulfilment row (null when this garment has no CA provider — US-only). */
+  ca: CatalogItem | null
+  /** US fulfilment row (null when no US provider configured). */
+  us: CatalogItem | null
+}
+
+/**
+ * All enabled garment styles, each grouped into its CA + US fulfilment rows.
+ * Powers the multi-garment product page (Fit/Style switcher) and creation flow.
+ * Styles with neither a usable CA nor US row are dropped. Default style first.
+ */
+export async function getStyleCatalog(): Promise<StyleGarment[]> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from('catalog_items')
+      .select('blueprint_id, print_provider_id, label, price, enabled_variant_ids, all_variant_ids, region, style_key, style_label, fit, is_default, created_at')
+      .eq('is_enabled', true)
+      .in('region', ['CA', 'US'])
+      .not('style_key', 'is', null)
+      .order('created_at', { ascending: true })
+
+    const rows = (data ?? []) as (CatalogItem & {
+      region: string; style_key: string; style_label: string | null; fit: string | null; is_default: boolean
+    })[]
+
+    const byStyle = new Map<string, StyleGarment>()
+    for (const r of rows) {
+      let g = byStyle.get(r.style_key)
+      if (!g) {
+        g = { styleKey: r.style_key, styleLabel: r.style_label ?? r.style_key, fit: r.fit ?? 'unisex', isDefault: false, ca: null, us: null }
+        byStyle.set(r.style_key, g)
+      }
+      if (r.region === 'CA' && isUsable(r)) g.ca = r
+      if (r.region === 'US' && isUsable(r)) g.us = r
+      if (r.is_default) g.isDefault = true
+    }
+
+    return [...byStyle.values()]
+      .filter((g) => g.ca || g.us)
+      .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+  } catch (err) {
+    console.warn('[catalog] Style catalog lookup failed:', err)
+    return []
+  }
 }

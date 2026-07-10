@@ -25,6 +25,10 @@ alter table products add column if not exists printify_id_us text;
 alter table products add column if not exists variant_map jsonb;
 -- Human-readable print placement chosen at creation, shown on the product page.
 alter table products add column if not exists placement text;
+-- Multi-garment: a design is a group of products (one per garment style).
+alter table products add column if not exists group_id uuid;
+alter table products add column if not exists style_key text;
+create index if not exists products_group_idx on products(group_id);
 
 -- Orders
 create table if not exists orders (
@@ -130,6 +134,12 @@ create table if not exists catalog_items (
 create trigger catalog_items_updated_at
   before update on catalog_items
   for each row execute function update_updated_at();
+
+-- Split fulfilment + multi-garment: region (CA/US) and garment style per row.
+alter table catalog_items add column if not exists region text;
+alter table catalog_items add column if not exists style_key text;
+alter table catalog_items add column if not exists style_label text;
+alter table catalog_items add column if not exists fit text not null default 'unisex';
 
 alter table catalog_items enable row level security;
 
