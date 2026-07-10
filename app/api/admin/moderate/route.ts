@@ -16,6 +16,7 @@ import { getProduct, publishProduct, deleteProduct, updateProduct } from '@/lib/
 import { isUploadAuthorized } from '@/lib/session'
 import { createUsCounterpart } from '@/lib/split-product'
 import { applyPendingCollectionsToProduct } from '@/lib/collections'
+import { buildGarmentGroup } from '@/lib/garment-group'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -96,6 +97,17 @@ export async function POST(request: NextRequest) {
         .eq('printify_id', product.id)
         .maybeSingle()
       if (prodRow?.id) await applyPendingCollectionsToProduct(pendingId!, prodRow.id as string)
+
+      // Expand into the full garment group (V-Neck, Heavyweight, Women's).
+      await buildGarmentGroup({
+        shopId,
+        primaryPrintifyId: product.id,
+        title: product.title,
+        description: product.description || '',
+        tags: product.tags || [],
+        printAreas: product.print_areas,
+        artistId: pending.artist_id ?? null,
+      })
 
       try { await publishProduct(shopId, pending.printify_id) } catch (e) {
         console.warn('[moderate] publishProduct failed (non-fatal):', e)

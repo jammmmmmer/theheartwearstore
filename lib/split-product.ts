@@ -249,3 +249,50 @@ export async function createUsCounterpart(params: {
     return null
   }
 }
+
+/**
+ * Expand an approved design (already created as `primaryStyleKey`, e.g. classic)
+ * into the OTHER garment styles, reusing the primary product's artwork + placement.
+ * Each other style is created as CA+US products (in parallel to fit the request
+ * time budget). Returns the created results — the caller writes the product rows
+ * with the shared group_id. Best-effort: failed garments are skipped.
+ */
+export async function expandDesignToGarments(params: {
+  shopId: string
+  primaryStyleKey: string
+  title: string
+  description: string
+  tags: string[]
+  printAreas: ProductPrintArea[] | undefined
+}): Promise<StyleCreateResult[]> {
+  const { shopId, primaryStyleKey, title, description, tags, printAreas } = params
+
+  // Rebuild the uploaded image id + placement geometry from the primary product.
+  const byPos = new Map<string, ProductPlaceholder>()
+  let imageId: string | null = null
+  for (const area of printAreas ?? []) {
+    for (const ph of area.placeholders ?? []) {
+      if (ph.images?.length && !byPos.has(ph.position)) {
+        byPos.set(ph.position, ph)
+        imageId = imageId ?? ph.images[0].id
+      }
+    }
+  }
+  if (!imageId) return []
+  const imgId = imageId
+  const areas: PlacementArea[] = [...byPos.values()].map((ph) => ({
+    position: ph.position,
+    images: ph.images.map((img) => ({ x: img.x, y: img.y, scale: img.scale, angle: img.angle })),
+  }))
+
+  const styles = await getStyleCatalog()
+  const results = await Promise.all(
+    styles
+      .filter((s) => s.styleKey !== primaryStyleKey)
+      .map((s) =>
+        createStyleProducts({ shopId, styleKey: s.styleKey, title, description, tags, imageId: imgId, areas })
+          .catch((e) => { console.warn(`[split] expand ${s.styleKey} failed (non-fatal):`, e); return null })
+      )
+  )
+  return results.filter((r): r is StyleCreateResult => r !== null)
+}

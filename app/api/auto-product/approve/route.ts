@@ -15,6 +15,7 @@ import { verifyToken } from '@/lib/approval-token'
 import { getProduct, publishProduct } from '@/lib/printify'
 import { createUsCounterpart } from '@/lib/split-product'
 import { applyPendingCollectionsToProduct } from '@/lib/collections'
+import { buildGarmentGroup } from '@/lib/garment-group'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
@@ -105,6 +106,17 @@ export async function GET(request: NextRequest) {
       .eq('printify_id', product.id)
       .maybeSingle()
     if (prodRow?.id) await applyPendingCollectionsToProduct(payload.pendingId, prodRow.id as string)
+
+    // 4a-ii. Expand into the full garment group (V-Neck, Heavyweight, Women's).
+    await buildGarmentGroup({
+      shopId,
+      primaryPrintifyId: product.id,
+      title: product.title,
+      description: product.description || '',
+      tags: product.tags || [],
+      printAreas: product.print_areas,
+      artistId: pending.artist_id ?? null,
+    })
 
     // 4b. Publish on Printify (custom_integration shop — won't archive)
     try {
