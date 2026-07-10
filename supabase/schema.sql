@@ -20,6 +20,11 @@ create table if not exists products (
 );
 -- Idempotent for existing databases (create table above is skipped if it exists).
 alter table products add column if not exists is_custom boolean not null default false;
+-- Dual-provider split: US (Monster Digital) counterpart product + shared-variant map.
+alter table products add column if not exists printify_id_us text;
+alter table products add column if not exists variant_map jsonb;
+-- Human-readable print placement chosen at creation, shown on the product page.
+alter table products add column if not exists placement text;
 
 -- Orders
 create table if not exists orders (

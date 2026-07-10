@@ -71,14 +71,16 @@ export async function POST(request: NextRequest) {
     const catalogItem = await getDefaultCatalogItem()
     const enabledSet = new Set(catalogItem.enabled_variant_ids)
 
-    // Build print areas: placement geometry × catalog variants × uploaded image
-    const print_areas = placement.areas.map(area => ({
+    // Build print areas: ONE area covering all variants, with one placeholder per
+    // position. Multiple areas over the same variant_ids collide in Printify and
+    // all but one placement is dropped (front+back would lose the front print).
+    const print_areas = [{
       variant_ids: catalogItem.all_variant_ids,
-      placeholders: [{
+      placeholders: placement.areas.map(area => ({
         position: area.position,
         images: area.images.map(img => ({ ...img, id: imageId })),
-      }],
-    }))
+      })),
+    }]
 
     const product = await createDraftProduct(shopId, {
       title: `${title} (${placement.label})`,

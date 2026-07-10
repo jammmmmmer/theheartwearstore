@@ -249,6 +249,16 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
             />
           )}
 
+          {/* Chosen print placement */}
+          {product.placement && (
+            <p className="text-xs text-stone-400">
+              <span className="uppercase tracking-widest text-stone-500 font-medium">
+                {tr.placement_label}:{' '}
+              </span>
+              {product.placement}
+            </p>
+          )}
+
           {/* Custom-upload final-sale notice */}
           {product.is_custom && (
             <div className="border border-hw-accent2/40 bg-hw-accent2/5 rounded-control px-4 py-3">

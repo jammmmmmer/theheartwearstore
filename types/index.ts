@@ -34,6 +34,8 @@ export interface Product {
   artist_id?: string | null
   /** True for public-uploaded custom tees — orderable by link but hidden from the shop collection. */
   is_custom?: boolean
+  /** Human-readable print placement chosen at creation (e.g. "Full Image — Back + Small Chest Front"). */
+  placement?: string | null
 }
 
 export interface Artist {

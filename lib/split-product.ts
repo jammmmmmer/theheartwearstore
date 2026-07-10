@@ -48,12 +48,19 @@ function buildPayload(
       price: item.price,
       is_enabled: enabledSet.has(id),
     })),
-    print_areas: areas.map((area) => ({
-      variant_ids: item.all_variant_ids,
-      placeholders: [
-        { position: area.position, images: area.images.map((img) => ({ ...img, id: imageId })) },
-      ],
-    })),
+    // ONE print area covering all variants, with one placeholder per position.
+    // Printify keys print areas by variant set, so multiple areas over the same
+    // variant_ids collide and all but one placement is dropped (e.g. front+back
+    // would lose the front). Keep every position in a single area's placeholders.
+    print_areas: [
+      {
+        variant_ids: item.all_variant_ids,
+        placeholders: areas.map((area) => ({
+          position: area.position,
+          images: area.images.map((img) => ({ ...img, id: imageId })),
+        })),
+      },
+    ],
   }
 }
 

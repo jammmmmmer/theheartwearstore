@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
         price_from: priceFrom,
         is_enabled: true,
         is_custom: true,
+        placement: placement.label,
       }, { onConflict: 'printify_id' })
       .select('id')
       .single()
