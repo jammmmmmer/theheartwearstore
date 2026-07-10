@@ -33,6 +33,7 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxZoom, setLightboxZoom] = useState(false)
+  const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
   const { addItem, openCart } = useCartStore()
   const { tr } = useTranslation()
@@ -99,7 +100,7 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
       title: product.title,
       variant_title: selectedVariant.title,
       price: selectedVariant.price,
-      quantity: 1,
+      quantity,
       image: defaultImage,
     })
 
@@ -335,6 +336,36 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
               </div>
             </div>
           ))}
+
+          {/* Quantity */}
+          <div className="flex flex-col gap-3">
+            <label className="text-xs uppercase tracking-widest text-stone-500 font-medium">
+              {tr.quantity_label}
+            </label>
+            <div className="flex items-center border border-stone-700 rounded-control w-fit overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                aria-label={tr.quantity_decrease}
+                className="w-11 h-11 flex items-center justify-center text-stone-300 hover:bg-stone-900 disabled:opacity-30 transition-colors"
+              >
+                −
+              </button>
+              <span className="w-12 text-center text-sm text-stone-100 tabular-nums" aria-live="polite">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.min(99, q + 1))}
+                disabled={quantity >= 99}
+                aria-label={tr.quantity_increase}
+                className="w-11 h-11 flex items-center justify-center text-stone-300 hover:bg-stone-900 disabled:opacity-30 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
 
           {/* Add to cart */}
           <div className="flex flex-col gap-3 pt-2">

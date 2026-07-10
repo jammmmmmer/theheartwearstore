@@ -53,6 +53,7 @@ export default function Header() {
               { href: '/shop',   label: tr.nav_shop },
               { href: '/collections', label: tr.nav_collections },
               { href: '/create', label: tr.nav_customize },
+              { href: '/artist/join', label: tr.nav_artists },
               { href: '/about',  label: tr.nav_about },
             ].map(({ href, label }) => (
               <Link

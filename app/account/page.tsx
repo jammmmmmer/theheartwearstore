@@ -142,6 +142,18 @@ export default function AccountPage() {
           >
             {mode === 'signin' ? tr.account_need_account : tr.account_have_account}
           </button>
+
+          {/* Artist sign-up */}
+          <div className="mt-8 pt-6 border-t border-stone-800 text-center">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-sage-700 mb-2">{tr.artist_cta_kicker}</p>
+            <p className="text-sm text-stone-400 mb-3">{tr.artist_cta_desc}</p>
+            <a
+              href="/artist/join"
+              className="inline-block border border-stone-600 text-stone-200 px-5 py-2.5 text-[10px] tracking-[0.3em] uppercase hover:border-stone-400 transition-colors rounded-control"
+            >
+              {tr.artist_cta_button}
+            </a>
+          </div>
         </div>
       </main>
     )
