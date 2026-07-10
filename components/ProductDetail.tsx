@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 // Note: using plain <img> tags instead of Next.js <Image> for Printify CDN URLs.
 // Next.js Image routes through the server-side optimizer which fails in Docker dev.
 // Plain <img> loads directly from the browser.
 import { Product, PrintifyVariant, PrintifyOption, PrintifyImage, Artist } from '@/types'
 import { useCartStore } from '@/lib/cart-store'
-import { ShoppingBag, Check } from 'lucide-react'
+import { ShoppingBag, Check, ZoomIn, X } from 'lucide-react'
 import BuyNowButton from '@/components/BuyNowButton'
 import WalletPayButton from '@/components/WalletPayButton'
 import SizeChart from '@/components/SizeChart'
@@ -31,6 +31,8 @@ function isHiddenModelShot(src: string): boolean {
 export default function ProductDetail({ product, artist }: ProductDetailProps) {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({})
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxZoom, setLightboxZoom] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
   const { addItem, openCart } = useCartStore()
   const { tr } = useTranslation()
@@ -145,6 +147,19 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
   const activeImageSrc =
     displayImages[activeImageIndex]?.src ?? displayImages[0]?.src ?? ''
 
+  // Close the zoom lightbox on Escape, and lock body scroll while it's open.
+  useEffect(() => {
+    if (!lightboxOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightboxOpen(false) }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [lightboxOpen])
+
   return (
     <div className="bg-stone-950 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
@@ -153,18 +168,30 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
           {/* Main image */}
           <div className="aspect-square hw-stage relative overflow-hidden rounded-card shadow-card">
             {activeImageSrc ? (
-              <img
-                src={activeImageSrc}
-                alt={product.title}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  padding: '4%',
-                }}
-              />
+              <>
+                <img
+                  src={activeImageSrc}
+                  alt={product.title}
+                  onClick={() => { setLightboxZoom(false); setLightboxOpen(true) }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    padding: '4%',
+                    cursor: 'zoom-in',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => { setLightboxZoom(false); setLightboxOpen(true) }}
+                  aria-label={tr.zoom_label}
+                  className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-full bg-stone-950/70 hover:bg-stone-950/90 text-stone-100 px-3 py-1.5 text-xs backdrop-blur transition-colors"
+                >
+                  <ZoomIn size={14} /> {tr.zoom_label}
+                </button>
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-stone-900">
                 <ShoppingBag size={48} strokeWidth={1} className="text-stone-700" />
@@ -385,6 +412,39 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
           </ul>
         </div>
       </div>
+
+      {/* Zoom lightbox */}
+      {lightboxOpen && activeImageSrc && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 overflow-auto"
+          onClick={() => setLightboxOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={product.title}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            aria-label={tr.close_label}
+            className="fixed top-4 right-4 z-[110] flex items-center justify-center w-10 h-10 rounded-full bg-stone-950/70 hover:bg-stone-950/90 text-stone-100 transition-colors"
+          >
+            <X size={22} />
+          </button>
+          <img
+            src={activeImageSrc}
+            alt={product.title}
+            onClick={(e) => { e.stopPropagation(); setLightboxZoom((z) => !z) }}
+            style={{
+              maxWidth: lightboxZoom ? 'none' : '92vw',
+              maxHeight: lightboxZoom ? 'none' : '92vh',
+              height: lightboxZoom ? '160vh' : 'auto',
+              objectFit: 'contain',
+              cursor: lightboxZoom ? 'zoom-out' : 'zoom-in',
+              transition: 'height 0.2s ease',
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }
