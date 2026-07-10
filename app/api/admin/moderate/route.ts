@@ -15,6 +15,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getProduct, publishProduct, deleteProduct, updateProduct } from '@/lib/printify'
 import { isUploadAuthorized } from '@/lib/session'
 import { createUsCounterpart } from '@/lib/split-product'
+import { applyPendingCollectionsToProduct } from '@/lib/collections'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -87,6 +88,14 @@ export async function POST(request: NextRequest) {
         { onConflict: 'printify_id' }
       )
       if (upsertError) throw new Error(`Upsert failed: ${upsertError.message}`)
+
+      // Carry the collections chosen at upload onto the live product.
+      const { data: prodRow } = await db
+        .from('products')
+        .select('id')
+        .eq('printify_id', product.id)
+        .maybeSingle()
+      if (prodRow?.id) await applyPendingCollectionsToProduct(pendingId!, prodRow.id as string)
 
       try { await publishProduct(shopId, pending.printify_id) } catch (e) {
         console.warn('[moderate] publishProduct failed (non-fatal):', e)

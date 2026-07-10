@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import CollectionPicker from '@/components/CollectionPicker'
 
 type Stage = 'form' | 'uploading' | 'done' | 'error'
 
@@ -19,6 +20,7 @@ export default function UploadDesignPage() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [title, setTitle] = useState('')
+  const [collectionIds, setCollectionIds] = useState<string[]>([])
   const [errorMsg, setErrorMsg] = useState('')
   const [dragging, setDragging] = useState(false)
   const [options, setOptions] = useState<PlacementOption[]>([])
@@ -140,7 +142,7 @@ export default function UploadDesignPage() {
           const res = await fetch('/api/auto-product/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageId, title: resolvedTitle, placementKey }),
+            body: JSON.stringify({ imageId, title: resolvedTitle, placementKey, collectionIds }),
           })
           const text = await res.text()
           let data: PlacementOption & { ok?: boolean; error?: string }
@@ -160,7 +162,7 @@ export default function UploadDesignPage() {
 
   const reset = () => {
     setStage('form'); setFile(null); setPreview(null)
-    setTitle(''); setOptions([]); setCardStates({}); setSelectedKey(null)
+    setTitle(''); setCollectionIds([]); setOptions([]); setCardStates({}); setSelectedKey(null)
   }
 
   if (stage === 'done') {
@@ -326,6 +328,14 @@ export default function UploadDesignPage() {
               placeholder="e.g. Bear Patch Tee"
               className="w-full bg-stone-900 border border-stone-700 text-stone-200 px-4 py-3 text-sm placeholder:text-stone-700 focus:outline-none focus:border-stone-500 transition-colors"
             />
+          </div>
+
+          <div>
+            <label className="block text-[10px] tracking-[0.35em] uppercase text-stone-600 mb-2">
+              Collections <span className="text-stone-700 normal-case tracking-normal">(optional)</span>
+            </label>
+            <CollectionPicker value={collectionIds} onChange={setCollectionIds} />
+            <p className="text-stone-700 text-[10px] mt-2">Applied to whichever placement you approve.</p>
           </div>
 
           {stage === 'error' && <p className="text-red-400 text-xs tracking-wide">{errorMsg}</p>}

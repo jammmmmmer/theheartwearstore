@@ -57,7 +57,9 @@ export async function POST(request: NextRequest) {
       imageId: string
       title: string
       placementKey: string
+      collectionIds?: string[]
     }
+    const collectionIds = Array.isArray(body.collectionIds) ? body.collectionIds.filter(Boolean) : []
 
     const placement = PLACEMENTS.find(p => p.key === body.placementKey)
     if (!placement) {
@@ -116,6 +118,7 @@ export async function POST(request: NextRequest) {
         topic: `manual-upload-${placement.key}`,
         mockup_url: mockupUrl,
         status: 'pending',
+        collection_ids: collectionIds,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       })
       .select('id')

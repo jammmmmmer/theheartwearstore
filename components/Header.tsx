@@ -51,6 +51,7 @@ export default function Header() {
             {[
               { href: '/',       label: tr.nav_home },
               { href: '/shop',   label: tr.nav_shop },
+              { href: '/collections', label: tr.nav_collections },
               { href: '/create', label: tr.nav_customize },
               { href: '/about',  label: tr.nav_about },
             ].map(({ href, label }) => (

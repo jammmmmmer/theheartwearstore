@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Heart } from 'lucide-react'
+import CollectionPicker from '@/components/CollectionPicker'
 
 export interface PendingItem {
   id: string
@@ -9,6 +11,8 @@ export interface PendingItem {
   mockup_url: string | null
   topic: string | null
   created_at: string
+  votes: number
+  collectionIds: string[]
 }
 
 export interface CustomItem {
@@ -16,6 +20,7 @@ export interface CustomItem {
   title: string
   image: string
   price_from: number
+  collectionIds: string[]
 }
 
 type CardState = 'idle' | 'loading' | 'done'
@@ -31,6 +36,30 @@ export default function AdminReviewClient({
   const [labels, setLabels] = useState<Record<string, string>>({})
   const [purging, setPurging] = useState(false)
   const [purgeMsg, setPurgeMsg] = useState('')
+
+  // Per-card collection selection (seeded from the server) + a transient "saved" flag.
+  const [collSel, setCollSel] = useState<Record<string, string[]>>(() => {
+    const m: Record<string, string[]> = {}
+    for (const p of pending) m[p.id] = p.collectionIds ?? []
+    for (const c of customs) m[c.id] = c.collectionIds ?? []
+    return m
+  })
+  const [collSaved, setCollSaved] = useState<Record<string, boolean>>({})
+
+  async function saveCollections(id: string, target: Record<string, string>, ids: string[]) {
+    setCollSel((s) => ({ ...s, [id]: ids }))
+    try {
+      await fetch('/api/admin/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'assign', collectionIds: ids, ...target }),
+      })
+      setCollSaved((s) => ({ ...s, [id]: true }))
+      setTimeout(() => setCollSaved((s) => ({ ...s, [id]: false })), 1500)
+    } catch {
+      /* leave optimistic state; a reload reconciles */
+    }
+  }
 
   // Permanently delete EVERY product from Printify + the shop, in batches.
   async function purgeCatalog() {
@@ -127,7 +156,15 @@ export default function AdminReviewClient({
                       <div className="w-full aspect-square bg-stone-900" />
                     )}
                     <div className="p-4">
-                      <p className="text-stone-200 text-sm font-medium truncate">{p.title}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-stone-200 text-sm font-medium truncate">{p.title}</p>
+                        <span
+                          title="Community votes"
+                          className="shrink-0 inline-flex items-center gap-1 text-xs font-mono text-[#d64533]"
+                        >
+                          <Heart size={12} fill="currentColor" /> {p.votes}
+                        </span>
+                      </div>
                       {p.topic && <p className="text-stone-600 text-xs mt-0.5 truncate">{p.topic}</p>}
                       {state === 'done' ? (
                         <p className="text-sage-500 text-[10px] tracking-[0.3em] uppercase py-3 text-center">{labels[p.id]}</p>
@@ -147,6 +184,18 @@ export default function AdminReviewClient({
                           >
                             Reject
                           </button>
+                        </div>
+                      )}
+                      {state !== 'done' && (
+                        <div className="mt-3 pt-3 border-t border-stone-800">
+                          <p className="text-[9px] tracking-[0.3em] uppercase text-stone-600 mb-2">
+                            Collections{collSaved[p.id] ? ' · saved ✓' : ''}
+                          </p>
+                          <CollectionPicker
+                            compact
+                            value={collSel[p.id] ?? []}
+                            onChange={(ids) => saveCollections(p.id, { pendingId: p.id }, ids)}
+                          />
                         </div>
                       )}
                     </div>
@@ -200,6 +249,18 @@ export default function AdminReviewClient({
                           >
                             Hide
                           </button>
+                        </div>
+                      )}
+                      {state !== 'done' && (
+                        <div className="mt-3 pt-3 border-t border-stone-800">
+                          <p className="text-[9px] tracking-[0.3em] uppercase text-stone-600 mb-2">
+                            Collections{collSaved[c.id] ? ' · saved ✓' : ''}
+                          </p>
+                          <CollectionPicker
+                            compact
+                            value={collSel[c.id] ?? []}
+                            onChange={(ids) => saveCollections(c.id, { productId: c.id }, ids)}
+                          />
                         </div>
                       )}
                     </div>

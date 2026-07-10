@@ -227,3 +227,27 @@ create index if not exists custom_upload_events_ip_created_idx
 
 alter table custom_upload_events enable row level security;
 -- No policies: only the service role (server) reads/writes this table.
+
+-- Collections: named, shoppable groupings of products (many-to-many).
+create table if not exists collections (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  slug text unique not null,
+  created_at timestamptz default now()
+);
+create table if not exists product_collections (
+  product_id text not null references products(id) on delete cascade,
+  collection_id uuid not null references collections(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (product_id, collection_id)
+);
+create index if not exists product_collections_collection_idx on product_collections(collection_id);
+-- Collections chosen at upload; copied onto the product when the design is approved.
+alter table pending_products add column if not exists collection_ids uuid[] not null default '{}';
+
+alter table collections enable row level security;
+alter table product_collections enable row level security;
+drop policy if exists collections_public_read on collections;
+create policy collections_public_read on collections for select using (true);
+drop policy if exists product_collections_public_read on product_collections;
+create policy product_collections_public_read on product_collections for select using (true);

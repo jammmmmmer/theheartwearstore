@@ -6,6 +6,7 @@ export const t = {
     // Nav
     nav_home: 'Home',
     nav_shop: 'Shop',
+    nav_collections: 'Collections',
     nav_customize: 'Customize',
     nav_about: 'About',
     nav_admin: 'Admin',
@@ -301,6 +302,7 @@ export const t = {
     // Nav
     nav_home: 'Accueil',
     nav_shop: 'Boutique',
+    nav_collections: 'Collections',
     nav_customize: 'Personnaliser',
     nav_about: 'À propos',
     nav_admin: 'Admin',

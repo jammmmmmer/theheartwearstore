@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/approval-token'
 import { getProduct, publishProduct } from '@/lib/printify'
 import { createUsCounterpart } from '@/lib/split-product'
+import { applyPendingCollectionsToProduct } from '@/lib/collections'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
@@ -96,6 +97,14 @@ export async function GET(request: NextRequest) {
       }, { onConflict: 'printify_id' })
 
     if (upsertError) throw new Error(`Supabase upsert failed: ${upsertError.message}`)
+
+    // 4a. Carry the collections chosen at upload onto the live product.
+    const { data: prodRow } = await supabaseAdmin()
+      .from('products')
+      .select('id')
+      .eq('printify_id', product.id)
+      .maybeSingle()
+    if (prodRow?.id) await applyPendingCollectionsToProduct(payload.pendingId, prodRow.id as string)
 
     // 4b. Publish on Printify (custom_integration shop — won't archive)
     try {
