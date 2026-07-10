@@ -145,6 +145,22 @@ export async function publishProduct(shopId: string, productId: string): Promise
   }
 }
 
+/** Patch a product's editable fields (e.g. title/description) on Printify. */
+export async function updateProduct(
+  shopId: string,
+  productId: string,
+  patch: { title?: string; description?: string }
+): Promise<void> {
+  const res = await fetch(
+    `${PRINTIFY_BASE_URL}/shops/${shopId}/products/${productId}.json`,
+    { method: 'PUT', headers: getHeaders(), body: JSON.stringify(patch) }
+  )
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Printify updateProduct failed: ${res.status} - ${err}`)
+  }
+}
+
 /** Unpublish a product (removes the store-connection lock so it can be deleted). Best-effort. */
 export async function unpublishProduct(shopId: string, productId: string): Promise<void> {
   try {

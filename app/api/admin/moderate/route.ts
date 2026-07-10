@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getProduct, publishProduct, deleteProduct } from '@/lib/printify'
+import { getProduct, publishProduct, deleteProduct, updateProduct } from '@/lib/printify'
 import { isUploadAuthorized } from '@/lib/session'
 import { createUsCounterpart } from '@/lib/split-product'
 
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       // flag and strip the trailing " (Custom)" suffix from the shop title.
       const { data: prod } = await db
         .from('products')
-        .select('title')
+        .select('title, printify_id, printify_id_us')
         .eq('id', productId)
         .single()
       const cleanTitle = (prod?.title ?? '').replace(/\s*\(custom\)\s*$/i, '').trim()
@@ -125,6 +125,17 @@ export async function POST(request: NextRequest) {
         .update({ is_custom: false, ...(cleanTitle ? { title: cleanTitle } : {}) })
         .eq('id', productId)
       if (error) throw new Error(error.message)
+
+      // Best-effort: mirror the cleaned title onto the Printify product(s) so the
+      // dashboard and order labels match the shop. Non-fatal — DB is source of truth.
+      if (cleanTitle) {
+        for (const pid of [prod?.printify_id, prod?.printify_id_us]) {
+          if (!pid) continue
+          try { await updateProduct(shopId, String(pid), { title: cleanTitle }) } catch (e) {
+            console.warn(`[moderate] Printify title update failed for ${pid} (non-fatal):`, e)
+          }
+        }
+      }
       return NextResponse.json({ ok: true })
     }
 
