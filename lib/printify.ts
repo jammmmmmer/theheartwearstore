@@ -173,6 +173,20 @@ export async function deleteProduct(shopId: string, productId: string): Promise<
 
 // ─── Catalog ───────────────────────────────────────────────────────────────
 
+/** List every print provider that offers a blueprint (id + name + location). */
+export async function getBlueprintProviders(
+  blueprintId: number
+): Promise<{ id: number; title: string; location?: Record<string, unknown> }[]> {
+  const res = await fetch(
+    `${PRINTIFY_BASE_URL}/catalog/blueprints/${blueprintId}/print_providers.json`,
+    { headers: getHeaders() }
+  )
+  if (!res.ok) {
+    throw new Error(`Printify getBlueprintProviders failed: ${res.status} - ${await res.text()}`)
+  }
+  return res.json()
+}
+
 export interface CatalogVariant {
   id: number
   title: string
