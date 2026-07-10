@@ -127,9 +127,11 @@ export async function POST(request: NextRequest) {
       : caFull.variants[0]?.price || 0
 
     // 3. Write it live as custom, storing both provider products.
+    // Upsert (not insert): the Printify webhook may have already synced the CA
+    // product row from the publish event — update it with the custom flags + US link.
     const { data: row, error: insertError } = await supabaseAdmin()
       .from('products')
-      .insert({
+      .upsert({
         printify_id: caFull.id,
         printify_id_us: printifyIdUs,
         title: `${title} (Custom)`,
@@ -141,7 +143,7 @@ export async function POST(request: NextRequest) {
         price_from: priceFrom,
         is_enabled: true,
         is_custom: true,
-      })
+      }, { onConflict: 'printify_id' })
       .select('id')
       .single()
 

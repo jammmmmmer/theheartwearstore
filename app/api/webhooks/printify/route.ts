@@ -123,6 +123,20 @@ export async function POST(request: NextRequest) {
         options: unknown[]
         variants: { price: number; is_enabled: boolean }[]
         images: unknown[]
+        print_provider_id?: number
+      }
+
+      // Split fulfilment: US-region provider products (e.g. Monster Digital) are
+      // fulfilment alternates linked via products.printify_id_us — they must NOT
+      // become standalone shop rows. Skip syncing them.
+      const { data: usRows } = await supabaseAdmin()
+        .from('catalog_items')
+        .select('print_provider_id')
+        .eq('region', 'US')
+      const usProviderIds = new Set((usRows ?? []).map((r) => r.print_provider_id as number))
+      if (product.print_provider_id && usProviderIds.has(product.print_provider_id)) {
+        console.log(`[webhook] skipping US-provider product ${productId} (fulfilment alternate)`)
+        return NextResponse.json({ received: true })
       }
 
       const enabledVariants = product.variants.filter(v => v.is_enabled)
