@@ -23,14 +23,24 @@ export interface CustomItem {
   collectionIds: string[]
 }
 
+export interface ShopItem {
+  id: string
+  title: string
+  image: string
+  price_from: number
+  collectionIds: string[]
+}
+
 type CardState = 'idle' | 'loading' | 'done'
 
 export default function AdminReviewClient({
   pending,
   customs,
+  shop = [],
 }: {
   pending: PendingItem[]
   customs: CustomItem[]
+  shop?: ShopItem[]
 }) {
   const [states, setStates] = useState<Record<string, CardState>>({})
   const [labels, setLabels] = useState<Record<string, string>>({})
@@ -42,6 +52,7 @@ export default function AdminReviewClient({
     const m: Record<string, string[]> = {}
     for (const p of pending) m[p.id] = p.collectionIds ?? []
     for (const c of customs) m[c.id] = c.collectionIds ?? []
+    for (const s of shop) m[s.id] = s.collectionIds ?? []
     return m
   })
   const [collSaved, setCollSaved] = useState<Record<string, boolean>>({})
@@ -267,6 +278,44 @@ export default function AdminReviewClient({
                   </div>
                 )
               })}
+            </div>
+          )}
+        </section>
+
+        {/* Shop products — manage collections for anything already live */}
+        <section className="mt-14">
+          <h2 className="text-xs tracking-[0.3em] uppercase text-stone-500 mb-1">
+            Shop products ({shop.length})
+          </h2>
+          <p className="text-stone-600 text-xs mb-4">Add any live product to a collection.</p>
+          {shop.length === 0 ? (
+            <p className="text-stone-600 text-sm">No shop products yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {shop.map((s) => (
+                <div key={s.id} className="border border-stone-800 rounded-card overflow-hidden">
+                  {s.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.image} alt={s.title} className="w-full aspect-square object-cover bg-stone-900" />
+                  ) : (
+                    <div className="w-full aspect-square bg-stone-900" />
+                  )}
+                  <div className="p-4">
+                    <Link href={`/shop/${s.id}`} className="text-stone-200 text-sm font-medium truncate hover:text-sage-400 block">
+                      {s.title}
+                    </Link>
+                    <p className="text-stone-600 text-xs mt-0.5 mb-3">From {price(s.price_from)}</p>
+                    <p className="text-[9px] tracking-[0.3em] uppercase text-stone-600 mb-2">
+                      Collections{collSaved[s.id] ? ' · saved ✓' : ''}
+                    </p>
+                    <CollectionPicker
+                      compact
+                      value={collSel[s.id] ?? []}
+                      onChange={(ids) => saveCollections(s.id, { productId: s.id }, ids)}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>

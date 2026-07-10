@@ -7,16 +7,16 @@
  */
 
 import { supabaseAdmin } from '@/lib/supabase'
-import AdminReviewClient, { PendingItem, CustomItem } from '@/components/AdminReviewClient'
+import AdminReviewClient, { PendingItem, CustomItem, ShopItem } from '@/components/AdminReviewClient'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Review Queue' }
 
-async function loadQueue(): Promise<{ pending: PendingItem[]; customs: CustomItem[] }> {
+async function loadQueue(): Promise<{ pending: PendingItem[]; customs: CustomItem[]; shop: ShopItem[] }> {
   try {
     const db = supabaseAdmin()
-    const [{ data: pending }, { data: customs }] = await Promise.all([
+    const [{ data: pending }, { data: customs }, { data: shopRows }] = await Promise.all([
       db
         .from('pending_products')
         .select('id, title, mockup_url, topic, created_at, collection_ids')
@@ -29,21 +29,31 @@ async function loadQueue(): Promise<{ pending: PendingItem[]; customs: CustomIte
         .eq('is_enabled', true)
         .order('created_at', { ascending: false })
         .limit(100),
+      db
+        .from('products')
+        .select('id, title, images, price_from, created_at')
+        .eq('is_custom', false)
+        .eq('is_enabled', true)
+        .order('created_at', { ascending: false })
+        .limit(200),
     ])
 
-    const customBase = (customs ?? []).map((p) => {
+    const toBase = (p: { id: string; title: string; images: unknown; price_from: number | null }) => {
       const imgs = (p.images as { src: string; is_default?: boolean }[] | null) ?? []
       const src = imgs.find((i) => i.is_default)?.src ?? imgs[0]?.src ?? ''
       return { id: p.id as string, title: p.title as string, image: src, price_from: (p.price_from as number) ?? 0 }
-    })
+    }
+    const customBase = (customs ?? []).map(toBase)
+    const shopBase = (shopRows ?? []).map(toBase)
 
-    // Current collection memberships for the customer-creation products.
+    // Current collection memberships for every product shown on this page.
     const collByProduct = new Map<string, string[]>()
-    if (customBase.length) {
+    const allIds = [...customBase, ...shopBase].map((p) => p.id)
+    if (allIds.length) {
       const { data: pc } = await db
         .from('product_collections')
         .select('product_id, collection_id')
-        .in('product_id', customBase.map((c) => c.id))
+        .in('product_id', allIds)
       for (const row of pc ?? []) {
         const arr = collByProduct.get(row.product_id as string) ?? []
         arr.push(row.collection_id as string)
@@ -51,6 +61,10 @@ async function loadQueue(): Promise<{ pending: PendingItem[]; customs: CustomIte
       }
     }
     const customItems: CustomItem[] = customBase.map((c) => ({
+      ...c,
+      collectionIds: collByProduct.get(c.id) ?? [],
+    }))
+    const shopItems: ShopItem[] = shopBase.map((c) => ({
       ...c,
       collectionIds: collByProduct.get(c.id) ?? [],
     }))
@@ -82,13 +96,13 @@ async function loadQueue(): Promise<{ pending: PendingItem[]; customs: CustomIte
       }))
       .sort((a, b) => b.votes - a.votes || (a.created_at < b.created_at ? 1 : -1))
 
-    return { pending: pendingItems, customs: customItems }
+    return { pending: pendingItems, customs: customItems, shop: shopItems }
   } catch {
-    return { pending: [], customs: [] }
+    return { pending: [], customs: [], shop: [] }
   }
 }
 
 export default async function AdminReviewPage() {
-  const { pending, customs } = await loadQueue()
-  return <AdminReviewClient pending={pending} customs={customs} />
+  const { pending, customs, shop } = await loadQueue()
+  return <AdminReviewClient pending={pending} customs={customs} shop={shop} />
 }
