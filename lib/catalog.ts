@@ -82,3 +82,36 @@ export async function getDefaultCatalogItem(): Promise<CatalogItem> {
     return FALLBACK_CATALOG_ITEM
   }
 }
+
+export interface SplitCatalog {
+  /** Canada fulfilment (Print Geek) — the primary product shown in the shop. */
+  ca: CatalogItem
+  /** US fulfilment (Monster Digital) — null when no US row is configured (falls back to single-product). */
+  us: CatalogItem | null
+}
+
+/**
+ * The regional split config: a CA provider + a US provider on the same blueprint.
+ * Variant IDs are shared across providers for this blueprint, so an order's
+ * variant maps 1:1 to either provider — no remapping needed. Falls back to the
+ * single default item (us = null) when the split isn't configured.
+ */
+export async function getSplitCatalog(): Promise<SplitCatalog> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from('catalog_items')
+      .select('blueprint_id, print_provider_id, label, price, enabled_variant_ids, all_variant_ids, region')
+      .eq('is_enabled', true)
+      .in('region', ['CA', 'US'])
+
+    const rows = (data ?? []) as (CatalogItem & { region: string })[]
+    const ca = rows.find((r) => r.region === 'CA')
+    const us = rows.find((r) => r.region === 'US')
+    if (ca && isUsable(ca)) {
+      return { ca, us: us && isUsable(us) ? us : null }
+    }
+  } catch (err) {
+    console.warn('[catalog] Split lookup failed, using single default:', err)
+  }
+  return { ca: await getDefaultCatalogItem(), us: null }
+}

@@ -15,13 +15,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import {
-  uploadImageToPrintify,
-  createDraftProduct,
-  publishProduct,
-  getProduct,
-} from '@/lib/printify'
-import { getDefaultCatalogItem } from '@/lib/catalog'
+import { uploadImageToPrintify } from '@/lib/printify'
+import { createSplitProducts } from '@/lib/split-product'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -114,67 +109,35 @@ export async function POST(request: NextRequest) {
     const base64 = Buffer.from(arrayBuffer).toString('base64')
     const uploaded = await uploadImageToPrintify(base64, `custom-${Date.now()}.png`)
 
-    // 2. Create the draft product for the chosen placement
-    const catalogItem = await getDefaultCatalogItem()
-    const enabledSet = new Set(catalogItem.enabled_variant_ids)
-    const print_areas = placement.areas.map((area) => ({
-      variant_ids: catalogItem.all_variant_ids,
-      placeholders: [
-        { position: area.position, images: area.images.map((img) => ({ ...img, id: uploaded.id })) },
-      ],
-    }))
-
-    const draft = await createDraftProduct(shopId, {
+    // 2. Create BOTH provider products (Print Geek CA + Monster Digital US) — same design.
+    const { printifyIdUs, caFull } = await createSplitProducts({
+      shopId,
       title: `${title} (Custom)`,
       description:
         'Your custom design, made to order on a 100% combed ring-spun cotton tee. ' +
         'Custom uploads are final sale — no returns or exchanges except for manufacturing defects.',
       tags: ['custom', 'made-to-order', 'unisex', 't-shirt'],
-      blueprint_id: catalogItem.blueprint_id,
-      print_provider_id: catalogItem.print_provider_id,
-      variants: catalogItem.all_variant_ids.map((id) => ({
-        id,
-        price: catalogItem.price,
-        is_enabled: enabledSet.has(id),
-      })),
-      print_areas,
+      imageId: uploaded.id,
+      areas: placement.areas,
     })
 
-    const printifyId = draft.id
-
-    // Publish to the Printify portal (custom_integration — won't archive). Non-fatal.
-    try {
-      await publishProduct(shopId, printifyId)
-    } catch (e) {
-      console.warn('[custom] publishProduct failed (non-fatal):', e)
-    }
-
-    // 3. Fetch the full product (variants/options/images) and write it live as custom.
-    const product = (await getProduct(shopId, printifyId)) as {
-      id: string
-      title: string
-      description: string
-      tags: string[]
-      options: unknown[]
-      variants: { price: number; is_enabled: boolean }[]
-      images: unknown[]
-    }
-
-    const enabledVariants = product.variants.filter((v) => v.is_enabled)
+    const enabledVariants = caFull.variants.filter((v) => v.is_enabled)
     const priceFrom = enabledVariants.length
       ? Math.min(...enabledVariants.map((v) => v.price))
-      : product.variants[0]?.price || 0
+      : caFull.variants[0]?.price || 0
 
+    // 3. Write it live as custom, storing both provider products.
     const { data: row, error: insertError } = await supabaseAdmin()
       .from('products')
       .insert({
-        printify_id: product.id,
+        printify_id: caFull.id,
+        printify_id_us: printifyIdUs,
         title: `${title} (Custom)`,
-        description: product.description || '',
-        tags: product.tags || [],
-        options: product.options || [],
-        variants: product.variants || [],
-        images: product.images || [],
+        description: caFull.description || '',
+        tags: caFull.tags || [],
+        options: caFull.options || [],
+        variants: caFull.variants || [],
+        images: caFull.images || [],
         price_from: priceFrom,
         is_enabled: true,
         is_custom: true,
