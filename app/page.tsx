@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { Product } from '@/types'
+import { dedupeByGroup } from '@/lib/product-group'
 import HomePageClient from '@/components/HomePageClient'
 
 async function getFeaturedProducts(): Promise<Product[]> {
@@ -33,8 +34,8 @@ async function getFeaturedProducts(): Promise<Product[]> {
     // Filter enabled products in JS — avoids boolean coercion quirks in the JS client
     const enabled = (data as Product[])
       .filter(p => p.is_enabled !== false && p.is_custom !== true)
-      .slice(0, 8)
-    return enabled
+    // One card per design group, then take the featured slice.
+    return dedupeByGroup(enabled).slice(0, 8)
   } catch (err) {
     console.error('[homepage] Fetch failed:', err)
     return []

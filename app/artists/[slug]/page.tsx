@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Product, Artist } from '@/types'
+import { dedupeByGroup } from '@/lib/product-group'
 import ArtistPageClient from '@/components/ArtistPageClient'
 
 interface PageProps {
@@ -32,7 +33,7 @@ async function getArtistWithProducts(
 
     return {
       artist: artist as Artist,
-      products: ((products ?? []) as Product[]).filter((p) => p.is_enabled !== false),
+      products: dedupeByGroup(((products ?? []) as Product[]).filter((p) => p.is_enabled !== false)),
     }
   } catch {
     return null

@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Product, Artist } from '@/types'
+import { dedupeByGroup } from '@/lib/product-group'
 import ProductDetail from '@/components/ProductDetail'
 import RelatedProducts from '@/components/RelatedProducts'
 
@@ -40,8 +41,11 @@ async function getRelatedProducts(current: Product): Promise<Product[]> {
     if (error || !data) return []
 
     const currentTags = new Set((current.tags ?? []).map((t) => t.toLowerCase()))
-    return (data as Product[])
-      .filter((p) => p.is_enabled !== false && p.is_custom !== true)
+    // One card per design group, and never surface the current design's own garments.
+    const candidates = dedupeByGroup(
+      (data as Product[]).filter((p) => p.is_enabled !== false && p.is_custom !== true)
+    ).filter((p) => !current.group_id || p.group_id !== current.group_id)
+    return candidates
       .map((p) => ({
         product: p,
         score: (p.tags ?? []).filter((t) => currentTags.has(t.toLowerCase())).length,
