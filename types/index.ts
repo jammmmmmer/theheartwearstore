@@ -36,6 +36,18 @@ export interface Product {
   is_custom?: boolean
   /** Human-readable print placement chosen at creation (e.g. "Full Image — Back + Small Chest Front"). */
   placement?: string | null
+  /** Groups the garment-style products for one design (Fit/Style switcher). */
+  group_id?: string | null
+  /** Which garment style this product is (classic | vneck | heavyweight | womens). */
+  style_key?: string | null
+}
+
+/** One garment-style option in a design group, for the product-page Fit/Style switcher. */
+export interface GarmentOption {
+  styleKey: string
+  styleLabel: string
+  fit: string
+  product: Product
 }
 
 export interface Artist {

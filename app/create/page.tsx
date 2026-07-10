@@ -65,19 +65,43 @@ export default function CreatePage() {
     setErrorMsg('')
     try {
       const compressed = await compressImage(file)
-      const formData = new FormData()
-      formData.append('image', compressed)
-      formData.append('placementKey', placement)
-      if (title.trim()) formData.append('title', title.trim())
 
-      const res = await fetch('/api/custom/create', { method: 'POST', body: formData })
-      const text = await res.text()
-      let data: { ok?: boolean; productId?: string; error?: string }
-      try { data = JSON.parse(text) } catch { throw new Error(`Server error ${res.status}`) }
-      if (!res.ok || !data.productId) throw new Error(data.error || `Server error ${res.status}`)
+      // 1. Init: upload the image once, get the garment list + a group id.
+      const initForm = new FormData()
+      initForm.append('image', compressed)
+      if (title.trim()) initForm.append('title', title.trim())
+      const initRes = await fetch('/api/custom/create', { method: 'POST', body: initForm })
+      const init = await initRes.json() as { imageId?: string; groupId?: string; title?: string; styleKeys?: string[]; error?: string }
+      if (!initRes.ok || !init.imageId || !init.groupId) {
+        throw new Error(init.error || `Server error ${initRes.status}`)
+      }
 
-      // Straight to the (unlisted) product page to pick size/colour and order.
-      router.push(`/shop/${data.productId}`)
+      // 2. Create one product per garment style (parallel — separate requests
+      //    keep each within the function time budget), all sharing the group id.
+      const styleKeys = init.styleKeys?.length ? init.styleKeys : ['classic']
+      const results = await Promise.all(
+        styleKeys.map((sk) =>
+          fetch('/api/custom/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageId: init.imageId, groupId: init.groupId, styleKey: sk,
+              placementKey: placement, title: init.title,
+            }),
+          })
+            .then((r) => r.json())
+            .catch(() => ({ error: 'request failed' }))
+        )
+      ) as { productId?: string; isDefault?: boolean; error?: string }[]
+
+      const made = results.filter((r) => r && r.productId)
+      if (!made.length) {
+        throw new Error(results.find((r) => r?.error)?.error || 'Could not create your tee')
+      }
+
+      // Land on the default garment's product page (the group's switcher covers the rest).
+      const primary = made.find((r) => r.isDefault) ?? made[0]
+      router.push(`/shop/${primary.productId}`)
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong')
       setStage('error')

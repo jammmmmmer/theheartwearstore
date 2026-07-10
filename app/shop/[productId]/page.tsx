@@ -89,6 +89,47 @@ async function getProduct(productId: string): Promise<Product | null> {
   }
 }
 
+/**
+ * Load the garment-style options for a design group (Fit/Style switcher).
+ * Returns a single option when the product isn't grouped. Default garment first.
+ */
+async function getGarmentOptions(product: Product): Promise<import('@/types').GarmentOption[]> {
+  const { getStyleCatalog } = await import('@/lib/catalog')
+  const styleMeta = new Map<string, { label: string; fit: string; isDefault: boolean }>()
+  try {
+    for (const s of await getStyleCatalog()) {
+      styleMeta.set(s.styleKey, { label: s.styleLabel, fit: s.fit, isDefault: s.isDefault })
+    }
+  } catch { /* fall back to single product below */ }
+
+  const meta = (k?: string | null) => (k && styleMeta.get(k)) || { label: 'Classic', fit: 'unisex', isDefault: true }
+
+  if (!product.group_id) {
+    const m = meta(product.style_key)
+    return [{ styleKey: product.style_key ?? 'classic', styleLabel: m.label, fit: m.fit, product }]
+  }
+
+  try {
+    const { supabaseAdmin } = await import('@/lib/supabase')
+    const { data } = await supabaseAdmin()
+      .from('products')
+      .select('*')
+      .eq('group_id', product.group_id)
+    const rows = ((data ?? []) as Product[]).filter((p) => p.is_enabled !== false)
+    if (!rows.length) rows.push(product)
+    return rows
+      .map((p) => {
+        const m = meta(p.style_key)
+        return { styleKey: p.style_key ?? 'classic', styleLabel: m.label, fit: m.fit, product: p, _def: m.isDefault }
+      })
+      .sort((a, b) => (b._def ? 1 : 0) - (a._def ? 1 : 0))
+      .map(({ _def, ...o }) => { void _def; return o })
+  } catch {
+    const m = meta(product.style_key)
+    return [{ styleKey: product.style_key ?? 'classic', styleLabel: m.label, fit: m.fit, product }]
+  }
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { productId } = await params
   const product = await getProduct(productId)
@@ -119,14 +160,15 @@ export default async function ProductPage({ params }: PageProps) {
     notFound()
   }
 
-  const [related, artist] = await Promise.all([
+  const [related, artist, garments] = await Promise.all([
     getRelatedProducts(product),
     getArtist(product.artist_id),
+    getGarmentOptions(product),
   ])
 
   return (
     <>
-      <ProductDetail product={product} artist={artist} />
+      <ProductDetail product={product} artist={artist} garments={garments} />
       <RelatedProducts products={related} />
     </>
   )

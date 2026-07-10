@@ -10,6 +10,28 @@ export const metadata: Metadata = {
   description: 'Browse The Heartwear Store full collection of thoughtfully made, printed-on-demand clothing.',
 }
 
+/**
+ * Collapse garment-style groups to one card per design (preserving order).
+ * The default 'classic' garment represents the group; ungrouped products pass through.
+ */
+function dedupeByGroup(products: Product[]): Product[] {
+  const primary = new Map<string, Product>()
+  for (const p of products) {
+    if (!p.group_id) continue
+    const cur = primary.get(p.group_id)
+    if (!cur || (p.style_key === 'classic' && cur.style_key !== 'classic')) primary.set(p.group_id, p)
+  }
+  const emitted = new Set<string>()
+  const out: Product[] = []
+  for (const p of products) {
+    if (!p.group_id) { out.push(p); continue }
+    if (emitted.has(p.group_id)) continue
+    emitted.add(p.group_id)
+    out.push(primary.get(p.group_id)!)
+  }
+  return out
+}
+
 async function getAllProducts(): Promise<Product[]> {
   noStore()
   if (
@@ -39,7 +61,9 @@ async function getAllProducts(): Promise<Product[]> {
     }
 
     // Exclude custom (public-uploaded) tees — they're orderable by link only.
-    return (data as Product[]).filter(p => p.is_enabled !== false && p.is_custom !== true)
+    const visible = (data as Product[]).filter(p => p.is_enabled !== false && p.is_custom !== true)
+    // One card per design group (the garment styles share a group_id).
+    return dedupeByGroup(visible)
   } catch (err) {
     console.error('Failed to fetch products:', err)
     return []

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 // Note: using plain <img> tags instead of Next.js <Image> for Printify CDN URLs.
 // Next.js Image routes through the server-side optimizer which fails in Docker dev.
 // Plain <img> loads directly from the browser.
-import { Product, PrintifyVariant, PrintifyOption, PrintifyImage, Artist } from '@/types'
+import { Product, PrintifyVariant, PrintifyOption, PrintifyImage, Artist, GarmentOption } from '@/types'
 import { useCartStore } from '@/lib/cart-store'
 import { ShoppingBag, Check, ZoomIn, X } from 'lucide-react'
 import BuyNowButton from '@/components/BuyNowButton'
@@ -16,7 +16,11 @@ import { useCurrency } from '@/lib/currency-context'
 interface ProductDetailProps {
   product: Product
   artist?: Artist | null
+  /** Garment-style options for the design group (Fit/Style switcher). */
+  garments?: GarmentOption[]
 }
+
+const FIT_LABELS: Record<string, string> = { unisex: 'Unisex', womens: "Women's", mens: "Men's" }
 
 // Printify's Bella+Canvas mockup scenes for this tee: person-1 & person-3 are
 // female models, person-2 & person-4 are male. The store leads with male-model
@@ -28,13 +32,37 @@ function isHiddenModelShot(src: string): boolean {
   return HIDDEN_MODEL_SCENES.some((scene) => label.startsWith(scene))
 }
 
-export default function ProductDetail({ product, artist }: ProductDetailProps) {
+export default function ProductDetail({ product: initialProduct, artist, garments }: ProductDetailProps) {
+  // Garment-style options for this design. A single-item list means no switcher.
+  const garmentOptions: GarmentOption[] = (garments && garments.length)
+    ? garments
+    : [{ styleKey: initialProduct.style_key ?? 'classic', styleLabel: 'Classic', fit: 'unisex', product: initialProduct }]
+
+  const [activeStyleKey, setActiveStyleKey] = useState(
+    initialProduct.style_key ?? garmentOptions[0].styleKey
+  )
+  const activeGarment = garmentOptions.find((g) => g.styleKey === activeStyleKey) ?? garmentOptions[0]
+  // The active product drives every selector, image, and the cart line below.
+  const product = activeGarment.product
+
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({})
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxZoom, setLightboxZoom] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
+
+  // Switching garment resets colour/size (they differ per garment) + the gallery.
+  function switchGarment(styleKey: string) {
+    if (styleKey === activeStyleKey) return
+    setActiveStyleKey(styleKey)
+    setSelectedOptions({})
+    setActiveImageIndex(0)
+    setAddedToCart(false)
+  }
+
+  const fits = [...new Set(garmentOptions.map((g) => g.fit))]
+  const stylesForActiveFit = garmentOptions.filter((g) => g.fit === activeGarment.fit)
   const { addItem, openCart } = useCartStore()
   const { tr } = useTranslation()
   const { display } = useCurrency()
@@ -296,6 +324,54 @@ export default function ProductDetail({ product, artist }: ProductDetailProps) {
               <p className="mt-1 text-xs text-stone-300 leading-relaxed">
                 {tr.custom_final_sale}
               </p>
+            </div>
+          )}
+
+          {/* Fit / Style switcher (only when the design has multiple garments) */}
+          {garmentOptions.length > 1 && (
+            <div className="flex flex-col gap-4">
+              {fits.length > 1 && (
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs uppercase tracking-widest text-stone-500 font-medium">{tr.garment_fit}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {fits.map((f) => {
+                      const on = activeGarment.fit === f
+                      return (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => switchGarment(garmentOptions.find((g) => g.fit === f)!.styleKey)}
+                          className={`px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-control border transition-all ${
+                            on ? 'border-stone-50 bg-stone-50 text-stone-950 shadow-card' : 'border-stone-700 bg-stone-950 text-stone-200 hover:border-stone-500'
+                          }`}
+                        >
+                          {FIT_LABELS[f] ?? f}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-col gap-3">
+                <label className="text-xs uppercase tracking-widest text-stone-500 font-medium">{tr.garment_style}</label>
+                <div className="flex flex-wrap gap-2">
+                  {stylesForActiveFit.map((g) => {
+                    const on = g.styleKey === activeStyleKey
+                    return (
+                      <button
+                        key={g.styleKey}
+                        type="button"
+                        onClick={() => switchGarment(g.styleKey)}
+                        className={`px-4 py-2.5 min-h-[44px] text-sm font-medium rounded-control border transition-all ${
+                          on ? 'border-stone-50 bg-stone-50 text-stone-950 shadow-card' : 'border-stone-700 bg-stone-950 text-stone-200 hover:border-stone-500'
+                        }`}
+                      >
+                        {g.styleLabel}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           )}
 

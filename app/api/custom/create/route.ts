@@ -14,9 +14,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { supabaseAdmin } from '@/lib/supabase'
 import { uploadImageToPrintify } from '@/lib/printify'
-import { createSplitProducts } from '@/lib/split-product'
+import { createStyleProducts } from '@/lib/split-product'
+import { getStyleCatalog } from '@/lib/catalog'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -71,10 +73,77 @@ async function rateLimited(ip: string): Promise<boolean> {
   return false
 }
 
+const CUSTOM_DESCRIPTION =
+  'Your custom design, made to order. Custom uploads are final sale — no returns or exchanges except for manufacturing defects.'
+
 export async function POST(request: NextRequest) {
   const shopId = process.env.PRINTIFY_SHOP_ID!
+  const contentType = request.headers.get('content-type') || ''
 
   try {
+    // ── STYLE MODE (JSON): create ONE garment style for a design group ─────
+    // Called once per garment by the client, so no single request creates them all.
+    if (contentType.includes('application/json')) {
+      const body = (await request.json()) as {
+        imageId?: string; groupId?: string; styleKey?: string; placementKey?: string; title?: string
+      }
+      if (!body.imageId || !body.groupId || !body.styleKey) {
+        return NextResponse.json({ error: 'imageId, groupId and styleKey are required' }, { status: 400 })
+      }
+      const placement = PLACEMENTS[body.placementKey ?? 'full_front']
+      if (!placement) return NextResponse.json({ error: 'Invalid placement' }, { status: 400 })
+      const title = (body.title?.trim() || 'Custom Design').slice(0, 80)
+
+      const result = await createStyleProducts({
+        shopId,
+        styleKey: body.styleKey,
+        title: `${title} (Custom)`,
+        description: CUSTOM_DESCRIPTION,
+        tags: ['custom', 'made-to-order', 't-shirt'],
+        imageId: body.imageId,
+        areas: placement.areas,
+      })
+      if (!result) {
+        return NextResponse.json({ error: `Garment "${body.styleKey}" is not available` }, { status: 400 })
+      }
+
+      const enabled = result.full.variants.filter((v) => v.is_enabled)
+      const priceFrom = enabled.length
+        ? Math.min(...enabled.map((v) => v.price))
+        : result.full.variants[0]?.price || 0
+
+      const { data: row, error } = await supabaseAdmin()
+        .from('products')
+        .upsert({
+          printify_id: result.printifyId,
+          printify_id_us: result.printifyIdUs,
+          title: `${title} (Custom)`,
+          description: result.full.description || '',
+          tags: result.full.tags || [],
+          options: result.full.options || [],
+          variants: result.full.variants || [],
+          images: result.full.images || [],
+          price_from: priceFrom,
+          is_enabled: true,
+          is_custom: true,
+          placement: placement.label,
+          group_id: body.groupId,
+          style_key: result.styleKey,
+        }, { onConflict: 'printify_id' })
+        .select('id')
+        .single()
+      if (error) throw new Error(`DB insert failed: ${error.message}`)
+
+      return NextResponse.json({
+        ok: true,
+        productId: row.id,
+        styleKey: result.styleKey,
+        styleLabel: result.styleLabel,
+        isDefault: result.isDefault,
+      })
+    }
+
+    // ── INIT MODE (multipart): rate-limit + upload image, return garment list ──
     const ip = clientIp(request)
     if (await rateLimited(ip)) {
       return NextResponse.json(
@@ -86,7 +155,6 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get('image') as File | null
     if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 })
-
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ error: 'Image must be PNG, JPG, or WebP' }, { status: 400 })
@@ -94,66 +162,23 @@ export async function POST(request: NextRequest) {
     if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'Image is too large (max 6MB).' }, { status: 400 })
     }
-
-    const placementKey = (formData.get('placementKey') as string | null) ?? 'full_front'
-    const placement = PLACEMENTS[placementKey]
-    if (!placement) {
-      return NextResponse.json({ error: 'Invalid placement' }, { status: 400 })
-    }
-
     const rawTitle = (formData.get('title') as string | null)?.trim()
     const title = (rawTitle || 'Custom Design').slice(0, 80)
 
-    // 1. Upload image to Printify
     const arrayBuffer = await file.arrayBuffer()
     const base64 = Buffer.from(arrayBuffer).toString('base64')
     const uploaded = await uploadImageToPrintify(base64, `custom-${Date.now()}.png`)
 
-    // 2. Create BOTH provider products (Print Geek CA + Monster Digital US) — same design.
-    const { printifyIdUs, caFull } = await createSplitProducts({
-      shopId,
-      title: `${title} (Custom)`,
-      description:
-        'Your custom design, made to order on a 100% combed ring-spun cotton tee. ' +
-        'Custom uploads are final sale — no returns or exchanges except for manufacturing defects.',
-      tags: ['custom', 'made-to-order', 'unisex', 't-shirt'],
+    // Return the garment list; the client fires one style-mode request per garment.
+    const styles = await getStyleCatalog()
+    return NextResponse.json({
+      ok: true,
+      mode: 'init',
       imageId: uploaded.id,
-      areas: placement.areas,
+      groupId: randomUUID(),
+      title,
+      styleKeys: styles.length ? styles.map((s) => s.styleKey) : ['classic'],
     })
-
-    const enabledVariants = caFull.variants.filter((v) => v.is_enabled)
-    const priceFrom = enabledVariants.length
-      ? Math.min(...enabledVariants.map((v) => v.price))
-      : caFull.variants[0]?.price || 0
-
-    // 3. Write it live as custom, storing both provider products.
-    // Upsert (not insert): the Printify webhook may have already synced the CA
-    // product row from the publish event — update it with the custom flags + US link.
-    const { data: row, error: insertError } = await supabaseAdmin()
-      .from('products')
-      .upsert({
-        printify_id: caFull.id,
-        printify_id_us: printifyIdUs,
-        title: `${title} (Custom)`,
-        description: caFull.description || '',
-        tags: caFull.tags || [],
-        options: caFull.options || [],
-        variants: caFull.variants || [],
-        images: caFull.images || [],
-        price_from: priceFrom,
-        is_enabled: true,
-        is_custom: true,
-        placement: placement.label,
-      }, { onConflict: 'printify_id' })
-      .select('id')
-      .single()
-
-    if (insertError) {
-      console.error('[custom] DB insert failed:', insertError)
-      throw new Error(`DB insert failed: ${insertError.message}`)
-    }
-
-    return NextResponse.json({ ok: true, productId: row.id })
   } catch (err) {
     console.error('[custom] Error:', err)
     return NextResponse.json(
