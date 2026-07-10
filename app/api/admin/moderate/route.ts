@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getProduct, publishProduct, deleteProduct } from '@/lib/printify'
 import { isUploadAuthorized } from '@/lib/session'
+import { createUsCounterpart } from '@/lib/split-product'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -51,15 +52,27 @@ export async function POST(request: NextRequest) {
         options: unknown[]
         variants: { price: number; is_enabled: boolean }[]
         images: unknown[]
+        print_areas?: { variant_ids?: number[]; placeholders?: { position: string; images: { id: string; x: number; y: number; scale: number; angle: number }[] }[] }[]
       }
       const enabled = product.variants.filter((v) => v.is_enabled)
       const priceFrom = enabled.length
         ? Math.min(...enabled.map((v) => v.price))
         : product.variants[0]?.price || 0
 
+      // Split fulfilment: create the US (Monster Digital) counterpart so the
+      // approved design is orderable in the US too. Best-effort → CA-only on null.
+      const printifyIdUs = await createUsCounterpart({
+        shopId,
+        title: product.title,
+        description: product.description || '',
+        tags: product.tags || [],
+        printAreas: product.print_areas,
+      })
+
       const { error: upsertError } = await db.from('products').upsert(
         {
           printify_id: product.id,
+          printify_id_us: printifyIdUs,
           title: product.title,
           description: product.description || '',
           tags: product.tags || [],

@@ -100,3 +100,73 @@ export async function createSplitProducts(params: {
   const caFull = (await getProduct(shopId, caDraft.id)) as FullProduct
   return { printifyIdCa: caDraft.id, printifyIdUs, caFull }
 }
+
+/** A Printify print-area placeholder as returned by getProduct. */
+interface ProductPlaceholder {
+  position: string
+  images: { id: string; x: number; y: number; scale: number; angle: number }[]
+}
+interface ProductPrintArea {
+  variant_ids?: number[]
+  placeholders?: ProductPlaceholder[]
+}
+
+/**
+ * Create the US (Monster Digital) counterpart of an already-created CA product,
+ * reusing that product's print areas (same artwork, same placement). Used by the
+ * admin approval paths so an approved community design becomes orderable in the
+ * US too. Best-effort: returns null when no US provider is configured or on any
+ * failure (the CA product remains the sole fulfilment source).
+ *
+ * @param printAreas the CA product's `print_areas` (from getProduct)
+ */
+export async function createUsCounterpart(params: {
+  shopId: string
+  title: string
+  description: string
+  tags: string[]
+  printAreas: ProductPrintArea[] | undefined
+}): Promise<string | null> {
+  const { shopId, title, description, tags, printAreas } = params
+  const { us } = await getSplitCatalog()
+  if (!us) return null
+
+  // Collapse the CA product's print areas into one set of non-empty placeholders,
+  // keyed by position (front/back). Variant IDs are shared across providers, so
+  // the same artwork maps 1:1 onto the US variants.
+  const byPosition = new Map<string, ProductPlaceholder>()
+  for (const area of printAreas ?? []) {
+    for (const ph of area.placeholders ?? []) {
+      if (ph.images?.length && !byPosition.has(ph.position)) byPosition.set(ph.position, ph)
+    }
+  }
+  const placeholders = [...byPosition.values()].map((ph) => ({
+    position: ph.position,
+    images: ph.images.map((img) => ({
+      id: img.id, x: img.x, y: img.y, scale: img.scale, angle: img.angle,
+    })),
+  }))
+  if (!placeholders.length) return null
+
+  const enabledSet = new Set(us.enabled_variant_ids)
+  try {
+    const usDraft = await createDraftProduct(shopId, {
+      title,
+      description,
+      tags,
+      blueprint_id: us.blueprint_id,
+      print_provider_id: us.print_provider_id,
+      variants: us.all_variant_ids.map((id) => ({
+        id, price: us.price, is_enabled: enabledSet.has(id),
+      })),
+      print_areas: [{ variant_ids: us.all_variant_ids, placeholders }],
+    })
+    try { await publishProduct(shopId, usDraft.id) } catch (e) {
+      console.warn('[split] publish US counterpart failed (non-fatal):', e)
+    }
+    return usDraft.id
+  } catch (e) {
+    console.warn('[split] US counterpart creation failed (non-fatal, CA-only):', e)
+    return null
+  }
+}
