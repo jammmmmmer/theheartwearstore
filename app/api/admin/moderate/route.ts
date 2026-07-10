@@ -112,7 +112,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'promote') {
-      const { error } = await db.from('products').update({ is_custom: false }).eq('id', productId)
+      // Promoting a customer creation into the shop collection: drop the custom
+      // flag and strip the trailing " (Custom)" suffix from the shop title.
+      const { data: prod } = await db
+        .from('products')
+        .select('title')
+        .eq('id', productId)
+        .single()
+      const cleanTitle = (prod?.title ?? '').replace(/\s*\(custom\)\s*$/i, '').trim()
+      const { error } = await db
+        .from('products')
+        .update({ is_custom: false, ...(cleanTitle ? { title: cleanTitle } : {}) })
+        .eq('id', productId)
       if (error) throw new Error(error.message)
       return NextResponse.json({ ok: true })
     }
