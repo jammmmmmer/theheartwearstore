@@ -147,10 +147,12 @@ export default function Header() {
           style={{ background: 'var(--hw-off)', borderColor: 'var(--hw-border)' }}
         >
           {[
-            { href: '/',       label: tr.nav_home },
-            { href: '/shop',   label: tr.nav_shop },
-            { href: '/create', label: tr.nav_customize },
-            { href: '/about',  label: tr.nav_about },
+            { href: '/',            label: tr.nav_home },
+            { href: '/shop',        label: tr.nav_shop },
+            { href: '/collections', label: tr.nav_collections },
+            { href: '/create',      label: tr.nav_customize },
+            { href: '/artist/join', label: tr.nav_artists },
+            { href: '/about',       label: tr.nav_about },
           ].map(({ href, label }) => (
             <Link
               key={href}
