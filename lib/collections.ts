@@ -57,11 +57,13 @@ export async function resolveCollections(params: {
 /** Replace a product's collection memberships with exactly `collectionIds`. */
 export async function setProductCollections(productId: string, collectionIds: string[]): Promise<void> {
   const db = supabaseAdmin()
-  await db.from('product_collections').delete().eq('product_id', productId)
+  const { error: delErr } = await db.from('product_collections').delete().eq('product_id', productId)
+  if (delErr) throw new Error(`Clearing collections failed: ${delErr.message}`)
   if (collectionIds.length) {
-    await db
+    const { error: insErr } = await db
       .from('product_collections')
       .insert(collectionIds.map((collection_id) => ({ product_id: productId, collection_id })))
+    if (insErr) throw new Error(`Assigning collections failed: ${insErr.message}`)
   }
 }
 
