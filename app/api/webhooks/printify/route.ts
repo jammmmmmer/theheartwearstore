@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getProduct } from '@/lib/printify'
 import { sendShippedEmail } from '@/lib/customer-email'
+import { setProductCollections } from '@/lib/collections'
 
 /**
  * Extract shipment tracking from a Printify order-event payload.
@@ -162,6 +163,27 @@ export async function POST(request: NextRequest) {
         console.error(`[webhook] Failed to upsert product ${productId}:`, upsertError)
       } else {
         console.log(`[webhook] product:published — upserted product ${productId} to Supabase`)
+        // Admin uploads reach the shop via this webhook (not the approve step),
+        // so apply the collections chosen at upload — but only seed them when the
+        // product has none yet, to avoid clobbering later manual edits.
+        try {
+          const db = supabaseAdmin()
+          const [{ data: prodRow }, { data: pend }] = await Promise.all([
+            db.from('products').select('id').eq('printify_id', product.id).maybeSingle(),
+            db.from('pending_products').select('collection_ids').eq('printify_id', product.id)
+              .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+          ])
+          const ids = (pend?.collection_ids as string[] | null) ?? []
+          if (prodRow?.id && ids.length) {
+            const { count } = await db
+              .from('product_collections')
+              .select('*', { count: 'exact', head: true })
+              .eq('product_id', prodRow.id as string)
+            if (!count) await setProductCollections(prodRow.id as string, ids)
+          }
+        } catch (e) {
+          console.warn(`[webhook] collection sync for ${productId} failed (non-fatal):`, e)
+        }
       }
 
       return NextResponse.json({ received: true })
