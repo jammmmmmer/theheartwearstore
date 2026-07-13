@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { prepareImageForUpload } from '@/lib/compress-image'
 
 type Stage = 'form' | 'uploading' | 'error'
 
@@ -23,29 +24,6 @@ export default function CreatePage() {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Compress large images below Netlify's 6MB function limit.
-  const compressImage = (f: File): Promise<File> => {
-    return new Promise((resolve) => {
-      if (f.size < 3 * 1024 * 1024) { resolve(f); return }
-      const img = new Image()
-      const url = URL.createObjectURL(f)
-      img.onload = () => {
-        URL.revokeObjectURL(url)
-        const MAX = 2000
-        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
-        const canvas = document.createElement('canvas')
-        canvas.width = Math.round(img.width * scale)
-        canvas.height = Math.round(img.height * scale)
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        canvas.toBlob((blob) => {
-          resolve(blob ? new File([blob], f.name, { type: 'image/png' }) : f)
-        }, 'image/png')
-      }
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(f) }
-      img.src = url
-    })
-  }
-
   const handleFile = (f: File) => {
     setFile(f)
     setPreview(URL.createObjectURL(f))
@@ -64,14 +42,29 @@ export default function CreatePage() {
     setStage('uploading')
     setErrorMsg('')
     try {
-      const compressed = await compressImage(file)
+      const compressed = await prepareImageForUpload(file)
+      if (!compressed) {
+        throw new Error('This image is too large to upload — please try a smaller file (under 6MB works best).')
+      }
 
       // 1. Init: upload the image once, get the garment list + a group id.
       const initForm = new FormData()
       initForm.append('image', compressed)
       if (title.trim()) initForm.append('title', title.trim())
       const initRes = await fetch('/api/custom/create', { method: 'POST', body: initForm })
-      const init = await initRes.json() as { imageId?: string; groupId?: string; title?: string; styleKeys?: string[]; error?: string }
+      // Never assume JSON: platform-level failures (body too large, timeout)
+      // return plain text like "Internal Error. ID: …".
+      const initText = await initRes.text()
+      let init: { imageId?: string; groupId?: string; title?: string; styleKeys?: string[]; error?: string }
+      try {
+        init = JSON.parse(initText)
+      } catch {
+        throw new Error(
+          initRes.status === 413 || /internal error/i.test(initText)
+            ? 'The upload was rejected because the image is too large. Please try a smaller file.'
+            : `Upload failed (server error ${initRes.status}). Please try again.`
+        )
+      }
       if (!initRes.ok || !init.imageId || !init.groupId) {
         throw new Error(init.error || `Server error ${initRes.status}`)
       }
